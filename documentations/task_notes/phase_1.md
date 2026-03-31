@@ -186,31 +186,46 @@ Tasks are sequential — do not start Task N+1 until Task N is `done`.
 
 ### Task 04 - Ekonomia i pricing
 
-**Status:** `not started`
+**Status:** `done`
 **Depends on:** Task 03
 
 #### Definition of Done
-- [ ] `pricing_service.py`: hybrydowa krzywa cen (`linear_early_exp_late`) zgodnie z `cost_growth_type` z `unit_definition`
-- [ ] `economy_service.py`: transakcje `buy_unit` i `buy_upgrade` atomowe (rollback przy błędzie)
-- [ ] Walidacja: brak środków → czytelny błąd, ilość ≤ 0 → odrzucenie
-- [ ] Upkeep automatyzacji jako aktywny sink `energy_drink` przez całą grę
-- [ ] Testy jednostkowe `pricing_service`: krzywa liniowa early, wykładnicza mid/late, brak ujemnych cen
-- [ ] Testy jednostkowe `economy_service`: poprawny zakup, niewystarczające środki, aktualizacja wallet po zakupie
-- [ ] Testy balansu: osiągalność reactor_t1 w zakładanym czasie przy startowych parametrach
+- [x] `pricing_service.py`: hybrydowa krzywa cen (`linear_early_exp_late`) zgodnie z `cost_growth_type` z `unit_definition`
+- [x] `economy_service.py`: transakcje `buy_unit` i `buy_upgrade` atomowe (rollback przy błędzie)
+- [x] Walidacja: brak środków → czytelny błąd, ilość ≤ 0 → odrzucenie
+- [x] Upkeep automatyzacji jako aktywny sink `energy_drink` przez całą grę (Task 03 zaimplementował, Task 04 go używa)
+- [x] Testy jednostkowe `pricing_service`: krzywa liniowa early, wykładnicza mid/late, brak ujemnych cen
+- [x] Testy jednostkowe `economy_service`: poprawny zakup, niewystarczające środki, aktualizacja wallet po zakupie
+- [x] Testy balansu: osiągalność reactor_t1 w zakładanym czasie przy startowych parametrach
 
 ---
 
 #### Post-task notes
-- **Date:**
-- **Commit(s):**
+- **Date:** 2026-04-01
+- **Commit(s):** 56b41c9
 - **Scope implemented:**
+  - `app/services/pricing_service.py` — `compute_unit_cost()` + `compute_bulk_cost()`; hybrydowa krzywa `linear_early_exp_late` (linear n≤25: `base × (1 + 0.15 × n)`, exp n>25: `base × 1.15^n`)
+  - `app/services/economy_service.py` — `buy_unit()` + `buy_upgrade()` + `_apply_upgrade_effect()`; wyjątki: `InsufficientFundsError`, `InvalidQuantityError`, `UnknownUnitError`, `UnknownUpgradeError`, `AlreadyPurchasedError`
+  - `UpgradeDefinition` + migracja: dodano `target_unit_id` (nullable String) — wymagane dla efektu `prod_mult`
+  - `seed.py` zaktualizowany: `barrel_opt_mk1 → target_unit_id="barrel"`, `reactor_tuning_mk1 → target_unit_id="mini_reactor"`
+  - 14 testów jednostkowych pricing, 13 testów economy, 4 testy balansu
 - **Architectural decisions:**
+  - Zakup wielu jednostek (qty > 1) sumuje koszty sekwencyjnie — gracz płaci dokładnie tyle, ile by zapłacił kupując po jednej
+  - `buy_upgrade` bez qty — upgrade'y są zawsze "jeden na raz" (powtarzalne przez `level`)
+  - `_apply_upgrade_effect()` działa in-place na przekazanym `PlayerState` (bez dodatkowego db.get), flush następuje po wszystkich zmianach
+  - `prod_mult` tworzy `PlayerUnit` z `amount_owned=0` jeśli nie istnieje — multiplier jest zapisany nawet przed zakupem jednostki
+  - Upkeep (sink) jest obsługiwany przez `game_loop_service.tick()` z Task 03 — Task 04 nie duplikuje tej logiki
 - **Risks / constraints:**
+  - `target_unit_id` jest nullable String, bez FK do `unit_definition` — celowo, by uniknąć komplikacji przy usuwaniu definicji jednostek; aplikacja zakłada integralność danych
+  - Migracja ręcznie zaktualizowana (dodano kolumnę `target_unit_id` w `upgrade_definition`)
 - **Notes for next tasks:**
+  - Task 05: endpointy `POST /buy-unit` i `POST /buy-upgrade` wywołują odpowiednio `buy_unit()` i `buy_upgrade()` w jednej transakcji; obsługują `InsufficientFundsError` → HTTP 409, `UnknownUnitError` → HTTP 404
+  - Task 05: po `buy_upgrade` należy wywołać `tick()` by odświeżyć snapshot — nowy multiplier wpłynie na następny tick
+  - Task 08 (prestige): `buy_upgrade` przy resecie musi sprawdzić `survives_prestige`; upgrade'y z `False` kasowane, z `True` zostają
 - **Test status:**
-  - Unit:
-  - Integration:
-  - Balance:
+  - Unit: 14 pricing + 13 economy = 27 PASSED
+  - Integration: 1 PASSED (health check)
+  - Balance: 4 PASSED (pricing affordability)
 
 ---
 
