@@ -89,7 +89,7 @@ Tasks are sequential — do not start Task N+1 until Task N is `done`.
 
 ### Task 02 - Modele i migracje
 
-**Status:** `not started`
+**Status:** `done`
 **Depends on:** Task 01
 
 #### Definition of Done
@@ -105,16 +105,32 @@ Tasks are sequential — do not start Task N+1 until Task N is `done`.
 ---
 
 #### Post-task notes
-- **Date:**
-- **Commit(s):**
+- **Date:** 2026-03-31
+- **Commit(s):** TBD
 - **Scope implemented:**
+  - Modele SQLAlchemy: `PlayerState`, `Wallet`, `UnitDefinition`, `PlayerUnit`, `UpgradeDefinition`, `PlayerUpgrade`, `BalanceConfig`, `BalanceTestRun`, `EventLog`
+  - Repozytoria: `PlayerStateRepository`, `WalletRepository`, `PlayerUnitRepository`, `PlayerUpgradeRepository`, `EventLogRepository`, `UnitDefinitionRepository`, `UpgradeDefinitionRepository`
+  - Pydantic schemas: `game.py` (PlayerState, Wallet, GameStateResponse, StartGameResponse), `economy.py` (Unit/Upgrade defs + player rows + Buy requests/responses)
+  - Seed: 7 jednostek (t1: barrel, mini_reactor, isotope_lab, processing_plant, uranium_mine; t2: centrifuge_t2, enrichment_facility) + 6 upgrade'ów
+  - Migracja Alembic: `fc60fc089de5_initial_schema.py` — ręczna (bez `--autogenerate`, brak lokalnego PostgreSQL)
+  - 12 testów jednostkowych dla repozytoriów (SQLite in-memory via aiosqlite)
 - **Architectural decisions:**
+  - UUID generowane jawnie w Pythonie (`uuid.uuid4()`) przed tworzeniem obiektów ORM — SQLAlchemy `default=` nie ustawia pola Python do czasu INSERT, co powodowałoby `NULL` w FK przy tworzeniu powiązanych obiektów w tej samej sesji
+  - Seed data jako plain dicts, nie moduł-level ORM instances — instance ORM dzielone między testami powodują "detached object" corruption w SQLAlchemy identity map
+  - `StaticPool` w unit test conftest — SQLite `:memory:` tworzy osobną bazę per-konekcja; StaticPool wymusza jedną konekcję dla całego testu
+  - `os.environ.setdefault(...)` na górze `app/tests/conftest.py` przed importem apki — Pydantic Settings instancjonuje się przy imporcie modułu
+  - `upgrade_definition` ma dodatkowe pole `survives_prestige` (nie w oryginalnej sekcji 2 docs) — wymagane przez mechanikę prestiżu z sekcji 17
 - **Risks / constraints:**
+  - Migracja ręczna — przy każdej zmianie modeli trzeba ją aktualizować ręcznie do czasu, gdy developer skonfiguruje lokalny PostgreSQL pod `--autogenerate`
+  - Brak `ondelete` na FK `player_unit.unit_id` → `unit_definition.id` — celowo: usuwanie definicji jednostek nie powinno kasować historii gracza
 - **Notes for next tasks:**
+  - Task 03: `PlayerStateRepository` i `WalletRepository` są gotowe do użycia w `game_loop_service`; `EventLogRepository.create` gotowy do logowania anomalii delta
+  - Task 03: `snapshot_signature` w `PlayerState` istnieje jako pusty string — `snapshot_sign_service` (Task 07) uzupełni logikę
+  - Task 05: dep `get_current_player` w `api/deps.py` powinien używać `PlayerStateRepository.get_by_id()` po walidacji nagłówka `X-Player-ID`
 - **Test status:**
-  - Unit:
-  - Integration:
-  - Balance:
+  - Unit: 11 testów PASSED (repositories, seed idempotency)
+  - Integration: 1 test PASSED (health check)
+  - Balance: n/a
 
 ---
 

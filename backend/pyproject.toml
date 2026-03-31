@@ -29,6 +29,7 @@ dev = [
     "pytest-cov>=5.0",
     "ruff>=0.4",
     "mypy>=1.10",
+    "aiosqlite>=0.20",
 ]
 
 [tool.pytest.ini_options]
@@ -37,7 +38,7 @@ testpaths = ["app/tests"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py312"
+target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP"]
