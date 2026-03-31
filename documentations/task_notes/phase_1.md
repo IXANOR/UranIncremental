@@ -1,19 +1,354 @@
 # Phase 1 Task Notes
 
-Ten plik jest dziennikiem wiedzy technicznej dla Fazy 1.
-Kazdy zakonczony task musi dopisac nowa sekcje wedlug ponizszego szablonu.
+Chronological knowledge log for Phase 1. Each completed task appends a filled-in section below.
+Tasks are sequential — do not start Task N+1 until Task N is `done`.
 
-## Szablon wpisu
+---
 
-### Task XX - <nazwa taska>
-- Date:
-- Commit(s):
-- Scope implemented:
-- Architectural decisions:
-- Risks / constraints:
-- Notes for next tasks:
-- Test status:
+## Template
+
+### Task XX - <name>
+
+**Status:** `not started` | `in progress` | `done`
+**Depends on:** Task XX
+
+#### Definition of Done
+- [ ] ...
+
+---
+
+#### Post-task notes
+- **Date:**
+- **Commit(s):**
+- **Scope implemented:**
+- **Architectural decisions:**
+- **Risks / constraints:**
+- **Notes for next tasks:**
+- **Test status:**
   - Unit:
   - Integration:
   - Balance:
 
+---
+
+## Tasks
+
+### Task 01 - Bootstrap projektu
+
+**Status:** `not started`
+**Depends on:** —
+
+#### Definition of Done
+- [ ] FastAPI app uruchamia się lokalnie (`uvicorn app.main:app --reload`)
+- [ ] Połączenie z PostgreSQL działa i jest konfigurowane przez `DATABASE_URL` w `.env`
+- [ ] Alembic skonfigurowany, `alembic upgrade head` przechodzi bez błędów
+- [ ] `.env.example` zawiera wszystkie wymagane zmienne: `DATABASE_URL`, `SNAPSHOT_SECRET`, `TEST_MODE`
+- [ ] `TEST_MODE` jest wczytywany przez `core/config.py` (Pydantic Settings)
+- [ ] `pyproject.toml` z zależnościami i grupą `[dev]`
+- [ ] Struktura folderów zgodna z dokumentacją (`app/core`, `app/db`, `app/api`, `app/services`, `app/schemas`, `app/tests`)
+- [ ] Podstawowy health-check endpoint `GET /health` zwraca `{"status": "ok"}`
+- [ ] Testy: pytest skonfigurowany, przynajmniej jeden test smoke przechodzi
+
+---
+
+#### Post-task notes
+- **Date:**
+- **Commit(s):**
+- **Scope implemented:**
+- **Architectural decisions:**
+- **Risks / constraints:**
+- **Notes for next tasks:**
+- **Test status:**
+  - Unit:
+  - Integration:
+  - Balance:
+
+---
+
+### Task 02 - Modele i migracje
+
+**Status:** `not started`
+**Depends on:** Task 01
+
+#### Definition of Done
+- [ ] Modele SQLAlchemy: `player_state`, `wallet`, `player_unit`, `player_upgrade`, `event_log`
+- [ ] Modele konfiguracyjne (read-only): `unit_definition`, `upgrade_definition`, `balance_config`, `balance_test_run`
+- [ ] Migracja Alembic tworząca wszystkie tabele — `alembic upgrade head` przechodzi czysto
+- [ ] Seed skrypt wypełniający `unit_definition` i `upgrade_definition` danymi startowymi (reaktory t1, podstawowe upgrade'y offline)
+- [ ] Repozytoria (`db/repositories/`) z podstawowym CRUD dla każdego modelu
+- [ ] Pydantic schemas (`schemas/`) odpowiadające modelom
+- [ ] Testy jednostkowe repozytoriów (na testowej bazie danych, bez mocków)
+- [ ] Wszystkie pola zgodne ze specyfikacją z `general_documentation.md` sekcja 2
+
+---
+
+#### Post-task notes
+- **Date:**
+- **Commit(s):**
+- **Scope implemented:**
+- **Architectural decisions:**
+- **Risks / constraints:**
+- **Notes for next tasks:**
+- **Test status:**
+  - Unit:
+  - Integration:
+  - Balance:
+
+---
+
+### Task 03 - Core loop service
+
+**Status:** `not started`
+**Depends on:** Task 02
+
+#### Definition of Done
+- [ ] `game_loop_service.py` implementuje pełną sekwencję: load → delta → production → upkeep → apply → sign → return
+- [ ] Delta time: rozróżnienie online vs offline, zastosowanie `offline_efficiency` i `offline_cap_seconds`
+- [ ] Startowe wartości: `offline_efficiency = 0.20`, `offline_cap = 4h`
+- [ ] Produkcja równoległa dla wszystkich aktywnych jednostek
+- [ ] Produkcja łańcuchowa dla jednostek wyższego tieru
+- [ ] Mnożniki z upgrade'ów i prestiżu stosowane poprawnie
+- [ ] Upkeep `energy_drink` odejmowany deterministycznie; jeśli brak — automatyzacja wyłączana deterministycznie
+- [ ] `snapshot_sign_service.py`: HMAC podpisywanie i weryfikacja stanu
+- [ ] Weryfikacja podpisu przy każdym load state; błąd podpisu → wyjątek z logiem do `event_log`
+- [ ] Testy jednostkowe: delta online, delta offline z cappingiem, produkcja z mnożnikami, upkeep niedobór
+- [ ] Testy balansu: brak deadlocku ekonomii przy domyślnych parametrach startowych
+
+---
+
+#### Post-task notes
+- **Date:**
+- **Commit(s):**
+- **Scope implemented:**
+- **Architectural decisions:**
+- **Risks / constraints:**
+- **Notes for next tasks:**
+- **Test status:**
+  - Unit:
+  - Integration:
+  - Balance:
+
+---
+
+### Task 04 - Ekonomia i pricing
+
+**Status:** `not started`
+**Depends on:** Task 03
+
+#### Definition of Done
+- [ ] `pricing_service.py`: hybrydowa krzywa cen (`linear_early_exp_late`) zgodnie z `cost_growth_type` z `unit_definition`
+- [ ] `economy_service.py`: transakcje `buy_unit` i `buy_upgrade` atomowe (rollback przy błędzie)
+- [ ] Walidacja: brak środków → czytelny błąd, ilość ≤ 0 → odrzucenie
+- [ ] Upkeep automatyzacji jako aktywny sink `energy_drink` przez całą grę
+- [ ] Testy jednostkowe `pricing_service`: krzywa liniowa early, wykładnicza mid/late, brak ujemnych cen
+- [ ] Testy jednostkowe `economy_service`: poprawny zakup, niewystarczające środki, aktualizacja wallet po zakupie
+- [ ] Testy balansu: osiągalność reactor_t1 w zakładanym czasie przy startowych parametrach
+
+---
+
+#### Post-task notes
+- **Date:**
+- **Commit(s):**
+- **Scope implemented:**
+- **Architectural decisions:**
+- **Risks / constraints:**
+- **Notes for next tasks:**
+- **Test status:**
+  - Unit:
+  - Integration:
+  - Balance:
+
+---
+
+### Task 05 - Endpointy MVP
+
+**Status:** `not started`
+**Depends on:** Task 04
+
+#### Definition of Done
+- [ ] `POST /api/v1/game/start` — inicjalizacja nowej gry, zwraca `player_id`, `state_version`, `started_at`
+- [ ] `GET /api/v1/game/state` — pełny snapshot po przeliczeniu delta, wywołuje `game_loop_service`
+- [ ] `POST /api/v1/economy/buy-unit` — zakup jednostki, zwraca `new_amount_owned` + `wallet_after`
+- [ ] `POST /api/v1/economy/buy-upgrade` — zakup ulepszenia, zwraca `upgrade_level` + `applied_effect`
+- [ ] `POST /api/v1/time/claim-offline` — symulacja offline, zwraca `simulated_seconds`, `gains`, `cap_applied`
+- [ ] Wszystkie odpowiedzi zgodne ze schematami z `general_documentation.md` sekcja 3.1
+- [ ] Routery pogrupowane wg modułów (`game.py`, `economy.py`, `time.py`)
+- [ ] Testy integracyjne dla każdego endpointu (rzeczywista baza, bez mocków)
+
+---
+
+#### Post-task notes
+- **Date:**
+- **Commit(s):**
+- **Scope implemented:**
+- **Architectural decisions:**
+- **Risks / constraints:**
+- **Notes for next tasks:**
+- **Test status:**
+  - Unit:
+  - Integration:
+  - Balance:
+
+---
+
+### Task 06 - Test/Admin endpoints (TEST_MODE)
+
+**Status:** `not started`
+**Depends on:** Task 05
+
+#### Definition of Done
+- [ ] `POST /api/v1/test/simulate-time` — symuluje upływ czasu o N sekund
+- [ ] `POST /api/v1/test/correct-state` — patchuje wallet i/lub units gracza
+- [ ] Twarda blokada w `api/deps.py`: gdy `TEST_MODE=false` endpointy zwracają `404` (nie `403`)
+- [ ] Test: przy `TEST_MODE=false` wywołanie endpointów debug zwraca `404`
+- [ ] Test: przy `TEST_MODE=true` `simulate-time` poprawnie modyfikuje stan i `state_version`
+- [ ] Test: przy `TEST_MODE=true` `correct-state` patchuje tylko podane pola
+
+---
+
+#### Post-task notes
+- **Date:**
+- **Commit(s):**
+- **Scope implemented:**
+- **Architectural decisions:**
+- **Risks / constraints:**
+- **Notes for next tasks:**
+- **Test status:**
+  - Unit:
+  - Integration:
+  - Balance:
+
+---
+
+### Task 07 - Snapshot signing i walidacja delta
+
+**Status:** `not started`
+**Depends on:** Task 06
+
+#### Definition of Done
+- [ ] HMAC snapshotu obejmuje wszystkie pola krytyczne: `wallet`, `units`, `last_tick_at`, `state_version`
+- [ ] Weryfikacja podpisu przy każdym `load_state`; manipulacja → wyjątek + wpis do `event_log`
+- [ ] Walidacja `delta_time`: odrzucenie delta < 0 i delta > `offline_cap_seconds * 2` (anomalia)
+- [ ] Anomalie delta logowane do `event_log` z `event_type = "delta_anomaly"`
+- [ ] `SNAPSHOT_SECRET` rotacja: zmiana klucza unieważnia stare snapshoty w sposób przewidywalny
+- [ ] Testy jednostkowe: poprawny podpis, zmodyfikowany podpis, delta ujemna, delta za duża
+- [ ] Testy integracyjne: pełny cykl sign → modify → verify fail
+
+---
+
+#### Post-task notes
+- **Date:**
+- **Commit(s):**
+- **Scope implemented:**
+- **Architectural decisions:**
+- **Risks / constraints:**
+- **Notes for next tasks:**
+- **Test status:**
+  - Unit:
+  - Integration:
+  - Balance:
+
+---
+
+### Task 08 - Soft reset (prestige v1)
+
+**Status:** `not started`
+**Depends on:** Task 07
+
+#### Definition of Done
+- [ ] `prestige_service.py`: miękki reset — zeruje `wallet`, `player_unit.amount_owned`, resetuje część unlocków
+- [ ] Zachowanie metaprogresji: `prestige_count`, `tech_magic_level`, wybrane upgrade'y (lista w kodzie)
+- [ ] `prestige_count` inkrementowany po każdym resecie
+- [ ] Nowy endpoint `POST /api/v1/game/prestige` — wywołuje `prestige_service`
+- [ ] Balans: każdy prestige daje mierzalny boost (mnożnik produkcji lub offline efficiency)
+- [ ] Testy jednostkowe: co jest resetowane, co zachowane, boost po prestige
+- [ ] Testy integracyjne: pełny cykl gry → prestige → state po prestige
+- [ ] Testy balansu: osiągalność pierwszego prestige w zakładanym czasie
+
+---
+
+#### Post-task notes
+- **Date:**
+- **Commit(s):**
+- **Scope implemented:**
+- **Architectural decisions:**
+- **Risks / constraints:**
+- **Notes for next tasks:**
+- **Test status:**
+  - Unit:
+  - Integration:
+  - Balance:
+
+---
+
+### Task 09 - TDD i testy balansu (must-pass suite)
+
+**Status:** `not started`
+**Depends on:** Task 08
+
+#### Definition of Done
+- [ ] Pełna balance test suite w `tests/balance/`:
+  - [ ] Brak deadlocku ekonomii (gracz nie może utknąć bez możliwości postępu)
+  - [ ] Brak runaway inflation zbyt wcześnie (tier 2+ nieosiągalny przed zakładanym progiem)
+  - [ ] Osiągalność tierów: t1 w `X` min, t2 w `Y` min, prestige 1 w `Z` min (progi zdefiniowane w teście)
+  - [ ] `energy_drink` pozostaje relevantny jako upkeep w late game
+- [ ] Testy integracyjne pokrywają wszystkie endpointy Fazy 1
+- [ ] Testy jednostkowe pokrywają: pricing, produkcję, offline cap, prestige boost, snapshot sign
+- [ ] `pytest` przechodzi w całości na czystej bazie testowej
+- [ ] Raport pokrycia (`pytest --cov`) ≥ 80% dla warstwy `services/`
+
+---
+
+#### Post-task notes
+- **Date:**
+- **Commit(s):**
+- **Scope implemented:**
+- **Architectural decisions:**
+- **Risks / constraints:**
+- **Notes for next tasks:**
+- **Test status:**
+  - Unit:
+  - Integration:
+  - Balance:
+
+---
+
+### Task 10 - Git workflow i jakość kodu
+
+**Status:** `not started`
+**Depends on:** Task 09
+
+#### Definition of Done
+- [ ] Wszystkie poprzednie taski mają uzupełnione post-task notes w tym pliku
+- [ ] `pyproject.toml` zawiera konfigurację linterów: `ruff` (linting + formatting), `mypy` (type checking)
+- [ ] `ruff check .` i `ruff format --check .` przechodzą bez błędów
+- [ ] `mypy app/` przechodzi bez błędów (strict mode dla `services/` i `core/`)
+- [ ] Pre-commit hook lub CI check uruchamiający testy + linting na każdy commit
+- [ ] Wszystkie publiczne klasy i funkcje w `services/`, `api/`, `db/repositories/`, `core/` mają docstringi (Google style)
+- [ ] `pytest` przechodzi w całości po wszystkich zmianach porządkowych
+- [ ] Faza 1 zamknięta: wpis podsumowujący Fazę 1 na końcu tego pliku
+
+---
+
+#### Post-task notes
+- **Date:**
+- **Commit(s):**
+- **Scope implemented:**
+- **Architectural decisions:**
+- **Risks / constraints:**
+- **Notes for next tasks:**
+- **Test status:**
+  - Unit:
+  - Integration:
+  - Balance:
+
+---
+
+## Phase 1 Summary
+
+*(Wypełnić po zakończeniu Task 10)*
+
+- **Closed:**
+- **Commits:**
+- **Final test status:**
+- **Known tech debt for Phase 2:**
