@@ -136,7 +136,7 @@ Tasks are sequential — do not start Task N+1 until Task N is `done`.
 
 ### Task 03 - Core loop service
 
-**Status:** `not started`
+**Status:** `done`
 **Depends on:** Task 02
 
 #### Definition of Done
@@ -155,16 +155,32 @@ Tasks are sequential — do not start Task N+1 until Task N is `done`.
 ---
 
 #### Post-task notes
-- **Date:**
-- **Commit(s):**
+- **Date:** 2026-03-31
+- **Commit(s):** TBD
 - **Scope implemented:**
+  - `app/core/time_utils.py` — `ensure_utc()`, `compute_delta()` z rozróżnieniem online/offline
+  - `app/services/snapshot_sign_service.py` — HMAC-SHA256 sign/verify; canonical JSON payload (player_id, version, last_tick_at, wallet, units sorted by unit_id)
+  - `app/services/game_loop_service.py` — pełna sekwencja: load → verify → delta → production → upkeep → flush → update state → sign; `SnapshotSignatureError`; `TickResult` dataclass
+  - 13 testów jednostkowych (delta, snapshot, production, prestige mult, upkeep, tamper)
+  - 3 testy balansu (starting balance, single barrel output, no deadlock after offline)
+  - `db_session` fixture przeniesiona do root conftest — dostępna dla wszystkich podkatalogów testów
 - **Architectural decisions:**
+  - Online/offline rozróżnienie przez `_ONLINE_THRESHOLD_SECONDS = 300` (5 min od `last_online_at`); `force_offline=True` w `tick()` dla endpointu `claim-offline`
+  - Snapshot weryfikowany tylko gdy `snapshot_signature != ""` — pierwszy tick (puste pole) przechodzi bez weryfikacji
+  - Upkeep w razie niedoboru wyłączany deterministycznie reverse-alphabetically po `unit_id`
+  - `effective_multiplier` z `PlayerUnit` (Task 04 będzie go ustawiał); prestige multiplier liczony w locie `Decimal("1.15") ** prestige_count`
+  - Timezone-naive datetimes z SQLite obsługiwane przez `ensure_utc()` — dodaje `UTC` jeśli brak tzinfo
 - **Risks / constraints:**
+  - `effective_multiplier` = 1.0 na wszystkich unitach do czasu Task 04 (economy service go zaktualizuje przy zakupie upgrade'ów)
+  - Brak upkeep w praktyce do Task 04 (domyślnie `upkeep_energy_per_sec = 0`, `automation_enabled = False`)
 - **Notes for next tasks:**
+  - Task 04: `economy_service.buy_upgrade()` musi aktualizować `PlayerUnit.effective_multiplier` per unit_id dla upgrade'ów `prod_mult`; po każdym zakupie upgrade'u wywołać `tick()` by stan był aktualny
+  - Task 04: `pricing_service` używa `unit_def.base_cost_amount`, `cost_growth_type`, `cost_growth_factor` — dostępne w `UnitDefinition`
+  - Task 05: `GET /state` wywołuje `tick(session, player)` wewnątrz transakcji i serializuje `TickResult`
 - **Test status:**
-  - Unit:
-  - Integration:
-  - Balance:
+  - Unit: 13 PASSED
+  - Integration: 1 PASSED (health)
+  - Balance: 3 PASSED
 
 ---
 
