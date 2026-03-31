@@ -35,7 +35,7 @@ Tasks are sequential — do not start Task N+1 until Task N is `done`.
 
 ### Task 01 - Bootstrap projektu
 
-**Status:** `not started`
+**Status:** `done`
 **Depends on:** —
 
 #### Definition of Done
@@ -54,16 +54,36 @@ Tasks are sequential — do not start Task N+1 until Task N is `done`.
 ---
 
 #### Post-task notes
-- **Date:**
-- **Commit(s):**
+- **Date:** 2026-03-31
+- **Commit(s):** TBD (committing after notes)
 - **Scope implemented:**
+  - `backend/` folder z pełną strukturą (`app/core`, `app/db`, `app/api`, `app/services`, `app/schemas`, `app/tests`)
+  - `pyproject.toml` z zależnościami prod + dev, setuptools package discovery
+  - `app/core/config.py` — Pydantic Settings ładuje `DATABASE_URL`, `SNAPSHOT_SECRET`, `TEST_MODE` z `.env`
+  - `app/db/session.py` — async SQLAlchemy engine + `AsyncSessionLocal` + dep `get_db`
+  - `app/db/base.py` — `DeclarativeBase` dla wszystkich modeli
+  - `app/api/routes/health.py` — `GET /health` → `{"status": "ok"}`
+  - `app/main.py` — FastAPI app z health routerem
+  - `alembic/env.py` — async migrations, metadata z `Base`, `DATABASE_URL` z settings
+  - `app/tests/conftest.py` — `AsyncClient` fixture przez ASGI transport
+  - `frontend/` — Svelte 5 + Vite, proxy `/api/*` → `:8000`, struktura `src/lib/{api,components,stores}`
+  - `.gitignore` zaktualizowany o `frontend/node_modules/`, `frontend/dist/`, `backend/.env`
 - **Architectural decisions:**
+  - `requires-python = ">=3.11"` zamiast 3.12 — środowisko ma Python 3.11.6, kod jest w pełni kompatybilny
+  - Alembic używa `async_engine_from_config` (nie sync) — spójne z asyncpg i resztą stacku
+  - `app/db/models/__init__.py` importuje wszystkie modele — Alembic odkrywa je przez `import app.db.models` w `env.py`
+  - Frontend: Svelte (nie Svelte 5 runes) — scaffolded przez `create-vite --template svelte`, wystarczy na Fazę 1
 - **Risks / constraints:**
+  - `create-vite@9.0.3` wymaga Node `>=20.19.0`; użytkownik ma `20.15.0` — ostrzeżenie, ale scaffold przeszedł poprawnie; do rozwiązania przed produkcją
+  - Brak `.env` w `backend/` — developer musi skopiować `.env.example` i uzupełnić przed uruchomieniem serwera
 - **Notes for next tasks:**
+  - Task 02 może zacząć od razu — `Base`, `get_db` i Alembic są gotowe
+  - Modele dodawać w `app/db/models/`, importować je w `app/db/models/__init__.py` — inaczej Alembic ich nie zobaczy
+  - Testy wymagające DB muszą używać osobnej testowej bazy (`TEST_DATABASE_URL`) — skonfigurować w `conftest.py` Task 02
 - **Test status:**
-  - Unit:
-  - Integration:
-  - Balance:
+  - Unit: n/a (brak logiki domenowej w tym tasku)
+  - Integration: `test_health_returns_ok` — PASSED
+  - Balance: n/a
 
 ---
 
