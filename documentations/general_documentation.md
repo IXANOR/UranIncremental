@@ -247,57 +247,71 @@ Wersja: `v0.1` (na podstawie ustaleń projektowych)
 ## 5. Struktura projektu (foldery)
 
 ```txt
-backend/
-  app/
-    main.py
-    core/
-      config.py
-      security.py
-      time_utils.py
-    db/
-      session.py
-      base.py
-      models/
-        player_state.py
-        wallet.py
-        unit.py
-        upgrade.py
-        balance.py
-        events.py
-      repositories/
-    schemas/
-      game.py
-      economy.py
-      time.py
-      balance.py
-      ai.py
-    services/
-      game_loop_service.py
-      economy_service.py
-      pricing_service.py
-      offline_service.py
-      prestige_service.py
-      balance_service.py
-      ai_content_service.py
-      snapshot_sign_service.py
-    api/
-      deps.py
-      routes/
+UranIncremental/
+  backend/
+    app/
+      main.py
+      core/
+        config.py
+        security.py
+        time_utils.py
+      db/
+        session.py
+        base.py
+        models/
+          player_state.py
+          wallet.py
+          unit.py
+          upgrade.py
+          balance.py
+          events.py
+        repositories/
+      schemas/
         game.py
         economy.py
         time.py
         balance.py
         ai.py
-        test_tools.py
-    tests/
-      unit/
-      integration/
-      balance/
+      services/
+        game_loop_service.py
+        economy_service.py
+        pricing_service.py
+        offline_service.py
+        prestige_service.py
+        balance_service.py
+        ai_content_service.py
+        snapshot_sign_service.py
       api/
-  alembic/
-  .env.example
-  pyproject.toml
-  README.md
+        deps.py
+        routes/
+          game.py
+          economy.py
+          time.py
+          balance.py
+          ai.py
+          test_tools.py
+      tests/
+        unit/
+        integration/
+        balance/
+        api/
+    alembic/
+    .env.example
+    pyproject.toml
+  frontend/
+    src/
+      lib/
+        api/           ← REST client (fetch wrappers per endpoint group)
+        components/    ← Svelte components
+        stores/        ← Svelte stores (game state, wallet, units)
+      App.svelte
+      main.js
+    index.html
+    package.json
+    vite.config.js
+  documentations/
+  CLAUDE.md
+  .gitignore
 ```
 
 ## 6. Implementation Phases (bardzo ważne)
@@ -439,3 +453,157 @@ Cel: działająca gra single-user lokalnie, pełna pętla idle, podstawowy balan
   - `Returns` dla wartości zwracanej,
   - `Raises` dla istotnych wyjątków.
 - W testach dopuszczalne są krótsze docstringi, ale dla test utilities i helperów również obowiązuje styl Google.
+
+---
+
+## 11. Seed data jednostek i upgrade'ów
+
+### 11.1. Jednostki Tier 1 (produkują `energy_drink`)
+
+Wszystkie: `cost_growth_type = linear_early_exp_late`, `base_cost_currency = energy_drink`.
+
+| id | Nazwa PL | base_cost | cost_growth_factor | production_rate/s | unlocked_by |
+|---|---|---|---|---|---|
+| `barrel` | Beczka Energetyka | 15 | 1.15 | 0.1 | null |
+| `mini_reactor` | Mini Reaktor Uranowy | 100 | 1.15 | 0.5 | null |
+| `isotope_lab` | Laboratorium Izotopów | 1 100 | 1.15 | 4.0 | null |
+| `processing_plant` | Zakład Przetwórczy | 12 000 | 1.15 | 10.0 | null |
+| `uranium_mine` | Kopalnia Uranu | 130 000 | 1.15 | 40.0 | null |
+
+Gracz startuje z `50 energy_drink`.
+
+### 11.2. Jednostki Tier 2 (produkują `u238`, koszt w `energy_drink`)
+
+| id | Nazwa PL | base_cost | cost_growth_factor | production_rate/s | unlocked_by |
+|---|---|---|---|---|---|
+| `centrifuge_t2` | Wirówka Izotopowa | 1 000 000 | 1.15 | 0.001 | null |
+| `enrichment_facility` | Zakład Wzbogacania | 10 000 000 | 1.15 | 0.005 | null |
+
+### 11.3. Jednostki Tier 3–5
+
+Zdefiniowane analogicznie, koszt w walucie poprzedniego tieru:
+- Tier 3: koszt w `u238`, produkują `u235`
+- Tier 4: koszt w `u235`, produkują `u233`
+- Tier 5: koszt w `u233`, produkują `meta_isotopes`
+
+Konkretne wartości zostaną ustalone przed Task 02, analogicznie do Tier 1–2.
+
+### 11.4. Upgrade'y startowe
+
+| id | Nazwa PL | cost_currency | cost_amount | effect_type | effect_value | is_repeatable | survives_prestige |
+|---|---|---|---|---|---|---|---|
+| `barrel_opt_mk1` | Optymalizacja Beczki | energy_drink | 200 | prod_mult | 1.10 | false | false |
+| `reactor_tuning_mk1` | Strojenie Reaktora | energy_drink | 1 000 | prod_mult | 1.20 | false | false |
+| `offline_module_mk1` | Moduł Offline Mk1 | energy_drink | 500 | offline_eff_up | 0.05 | false | **true** |
+| `offline_module_mk2` | Moduł Offline Mk2 | energy_drink | 5 000 | offline_eff_up | 0.10 | false | **true** |
+| `offline_cap_mk1` | Rozszerzenie Bufora Mk1 | energy_drink | 2 000 | offline_cap_up | 7200 | false | **true** |
+| `offline_cap_mk2` | Rozszerzenie Bufora Mk2 | energy_drink | 20 000 | offline_cap_up | 14400 | false | **true** |
+
+**Zasada prestige:** upgrade'y z `effect_type` w `["offline_eff_up", "offline_cap_up"]` przeżywają reset. Wszystkie pozostałe są kasowane.
+
+---
+
+## 12. Łańcuch produkcji walut (Currency Chain)
+
+```
+energy_drink  ──►  [Tier 1 units]  ──►  energy_drink (produkcja)
+                                    ↓
+                          [Tier 2 units, koszt: energy_drink]
+                                    ↓
+                               u238 (produkcja)
+                                    ↓
+                          [Tier 3 units, koszt: u238]
+                                    ↓
+                               u235 (produkcja)
+                                    ↓ ...
+```
+
+**Cross-tier production (przez upgrade'y):**
+Specjalne upgrade'y mogą sprawić, że jednostki niższego tieru DODATKOWO produkują małą ilość waluty wyższego tieru.
+Przykład: upgrade `reactor_isotope_leak_mk1` sprawia, że `mini_reactor` produkuje `+0.00001 u238/s` per sztukę.
+Efekt dodawany jako osobna pozycja w production pass, nie jako zmiana `production_resource` jednostki.
+
+---
+
+## 13. Identyfikacja gracza (single-user)
+
+- Brak tradycyjnego uwierzytelniania w Fazie 1.
+- `POST /api/v1/game/start` tworzy gracza jeśli żaden nie istnieje, w przeciwnym razie zwraca istniejącego.
+- Zwraca `player_id` (UUID), który frontend przechowuje w `localStorage`.
+- Każde kolejne żądanie do API zawiera nagłówek `X-Player-ID: <uuid>`.
+- `api/deps.py` waliduje nagłówek i pobiera gracza z bazy — jeden centralny punkt walidacji.
+- Przygotowanie pod multi-user (Faza 3): zamienić dep na JWT bez zmiany sygnatur endpointów.
+
+---
+
+## 14. Frontend (Faza 1)
+
+- **Stack:** Svelte 5 + Vite
+- **Styl:** ciemny motyw, estetyka tech/nuclear, minimalistyczny HUD (brak skomplikowanych animacji w Fazie 1)
+- **Komunikacja:** REST calls do FastAPI (`/api/v1/*`), stan gry zarządzany przez Svelte stores
+- **Dev:** dwa osobne serwery — Vite na `:5173`, FastAPI na `:8000`; proxy Vite → FastAPI dla `/api/*`
+- **Prod:** FastAPI serwuje zbudowany frontend ze ścieżki `frontend/dist/` jako StaticFiles
+
+### Struktura stores
+- `gameStore` — `player_state`, `server_time`
+- `walletStore` — wszystkie waluty
+- `unitsStore` — lista `player_unit` z ilościami i efektami
+- `upgradesStore` — lista zakupionych upgrade'ów
+
+### Zakres Fazy 1 (frontend)
+- Wyświetlanie waluta (wallet HUD)
+- Lista jednostek z przyciskiem "kup"
+- Lista upgrade'ów z przyciskiem "kup"
+- Przycisk "Claim Offline Gains" po powrocie
+- Przycisk "Prestige" (po odblokowaniu)
+- Auto-refresh stanu co 5 sekund (polling)
+
+---
+
+## 15. Parametry krzywej cenowej (`linear_early_exp_late`)
+
+Dwa etapy, przełącznik przy `amount_owned = 25`:
+
+- **Etap liniowy** (n ≤ 25): `cost(n) = base_cost × (1 + 0.15 × n)`
+  - Przewidywalny wzrost, przyjazny early game
+- **Etap wykładniczy** (n > 25): `cost(n) = base_cost × 1.15^n`
+  - Wyraźny skok trudności po n=25, strong exponential mid/late
+
+Implementacja w `pricing_service.py`: jeden parametr `threshold = 25` steruje przełącznikiem.
+
+---
+
+## 16. Progi balansu (acceptance thresholds dla test suite)
+
+Mierzone w symulowanym czasie gry (aktywna gra, bez offline):
+
+| Cel | Próg minimalny | Próg maksymalny |
+|---|---|---|
+| Pierwszy zakup (`barrel` x1) | 10 s | 60 s |
+| `barrel` x25 (próg wykładniczy) | 5 min | 20 min |
+| Pierwszy zakup Tier 2 (`centrifuge_t2`) | 20 min | 90 min |
+| Prestige 1 | 90 min | 4 h |
+| Brak deadlocku (zawsze możliwy postęp) | — | zawsze |
+| `energy_drink` relevance w t2+ (upkeep > 0) | — | zawsze |
+
+Testy w `tests/balance/` symulują grę przez `simulate-time` i sprawdzają osiągnięcie progów.
+
+---
+
+## 17. Mechanika prestiżu (v1)
+
+### Co jest resetowane
+- `wallet` — wszystkie waluty do zera
+- `player_unit.amount_owned` — wszystkie jednostki do zera
+- Upgrade'y z `effect_type NOT IN ["offline_eff_up", "offline_cap_up"]`
+
+### Co jest zachowane
+- `prestige_count` (inkrementowany +1)
+- `tech_magic_level`
+- Upgrade'y offline (`offline_eff_up`, `offline_cap_up`)
+
+### Prestige boost
+- Każdy prestige dodaje **+15% globalnego mnożnika produkcji** (stackuje się multiplikatywnie).
+- Wzór: `prestige_multiplier = 1.15 ^ prestige_count`
+- Przykład: po 3 prestiżach → `1.15³ ≈ 1.52x` wszystkich produkcji.
+- Mnożnik aplikowany w production pass przez `game_loop_service`.

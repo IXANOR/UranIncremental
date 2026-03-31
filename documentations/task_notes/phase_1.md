@@ -39,14 +39,16 @@ Tasks are sequential — do not start Task N+1 until Task N is `done`.
 **Depends on:** —
 
 #### Definition of Done
-- [ ] FastAPI app uruchamia się lokalnie (`uvicorn app.main:app --reload`)
+- [ ] FastAPI app uruchamia się lokalnie (`uvicorn app.main:app --reload`) z katalogu `backend/`
 - [ ] Połączenie z PostgreSQL działa i jest konfigurowane przez `DATABASE_URL` w `.env`
 - [ ] Alembic skonfigurowany, `alembic upgrade head` przechodzi bez błędów
 - [ ] `.env.example` zawiera wszystkie wymagane zmienne: `DATABASE_URL`, `SNAPSHOT_SECRET`, `TEST_MODE`
 - [ ] `TEST_MODE` jest wczytywany przez `core/config.py` (Pydantic Settings)
-- [ ] `pyproject.toml` z zależnościami i grupą `[dev]`
-- [ ] Struktura folderów zgodna z dokumentacją (`app/core`, `app/db`, `app/api`, `app/services`, `app/schemas`, `app/tests`)
+- [ ] `backend/pyproject.toml` z zależnościami i grupą `[dev]`
+- [ ] Struktura folderów zgodna z dokumentacją sekcja 5 (`backend/`, `frontend/` na poziomie root)
 - [ ] Podstawowy health-check endpoint `GET /health` zwraca `{"status": "ok"}`
+- [ ] Frontend: `frontend/` zainicjalizowany przez `npm create vite@latest` (Svelte 5 + JS)
+- [ ] Frontend: `npm run dev` uruchamia Vite na `:5173`, proxy `/api/*` → `http://localhost:8000`
 - [ ] Testy: pytest skonfigurowany, przynajmniej jeden test smoke przechodzi
 
 ---
@@ -166,11 +168,12 @@ Tasks are sequential — do not start Task N+1 until Task N is `done`.
 **Depends on:** Task 04
 
 #### Definition of Done
-- [ ] `POST /api/v1/game/start` — inicjalizacja nowej gry, zwraca `player_id`, `state_version`, `started_at`
-- [ ] `GET /api/v1/game/state` — pełny snapshot po przeliczeniu delta, wywołuje `game_loop_service`
+- [ ] `POST /api/v1/game/start` — tworzy gracza jeśli żaden nie istnieje, w przeciwnym razie zwraca istniejącego; zwraca `player_id`, `state_version`, `started_at`
+- [ ] `GET /api/v1/game/state` — pełny snapshot po przeliczeniu delta, wywołuje `game_loop_service`; wymaga nagłówka `X-Player-ID`
 - [ ] `POST /api/v1/economy/buy-unit` — zakup jednostki, zwraca `new_amount_owned` + `wallet_after`
 - [ ] `POST /api/v1/economy/buy-upgrade` — zakup ulepszenia, zwraca `upgrade_level` + `applied_effect`
 - [ ] `POST /api/v1/time/claim-offline` — symulacja offline, zwraca `simulated_seconds`, `gains`, `cap_applied`
+- [ ] `deps.py`: dep `get_current_player` waliduje nagłówek `X-Player-ID` i pobiera gracza z bazy; brak nagłówka → `400`, nieznany UUID → `404`
 - [ ] Wszystkie odpowiedzi zgodne ze schematami z `general_documentation.md` sekcja 3.1
 - [ ] Routery pogrupowane wg modułów (`game.py`, `economy.py`, `time.py`)
 - [ ] Testy integracyjne dla każdego endpointu (rzeczywista baza, bez mocków)
@@ -327,6 +330,39 @@ Tasks are sequential — do not start Task N+1 until Task N is `done`.
 - [ ] Wszystkie publiczne klasy i funkcje w `services/`, `api/`, `db/repositories/`, `core/` mają docstringi (Google style)
 - [ ] `pytest` przechodzi w całości po wszystkich zmianach porządkowych
 - [ ] Faza 1 zamknięta: wpis podsumowujący Fazę 1 na końcu tego pliku
+
+---
+
+#### Post-task notes
+- **Date:**
+- **Commit(s):**
+- **Scope implemented:**
+- **Architectural decisions:**
+- **Risks / constraints:**
+- **Notes for next tasks:**
+- **Test status:**
+  - Unit:
+  - Integration:
+  - Balance:
+
+---
+
+### Task 11 - Frontend MVP
+
+**Status:** `not started`
+**Depends on:** Task 08
+
+#### Definition of Done
+- [ ] Wallet HUD: wyświetla wszystkie waluty (`energy_drink`, `u238`, `u235`, `u233`, `meta_isotopes`) w czasie rzeczywistym
+- [ ] Lista jednostek: każda pozycja pokazuje nazwę, ilość, koszt następnego zakupu, stawkę produkcji; przycisk "Kup" wywołuje `POST /economy/buy-unit`
+- [ ] Lista upgrade'ów: każda pozycja pokazuje nazwę, opis, koszt; przycisk "Kup" wywołuje `POST /economy/buy-upgrade`; zakupione upgrade'y wizualnie oznaczone
+- [ ] Przycisk "Odbierz nagrody offline" widoczny po powrocie z pauzy; wywołuje `POST /time/claim-offline` i wyświetla gains
+- [ ] Przycisk "Prestige" widoczny (i aktywny) dopiero po spełnieniu warunku prestiżu; wywołuje `POST /game/prestige` z potwierdzeniem
+- [ ] Auto-refresh stanu co 5 sekund (polling `GET /game/state`); wallet i ilości jednostek aktualizowane bez przeładowania strony
+- [ ] `player_id` pobierany przez `POST /game/start` przy pierwszym uruchomieniu i przechowywany w `localStorage`; każde żądanie API dołącza nagłówek `X-Player-ID`
+- [ ] Ciemny motyw, czytelny HUD, estetyka tech/nuclear — bez animacji i skomplikowanych efektów
+- [ ] Vite proxy `/api/*` → FastAPI; `npm run build` generuje `frontend/dist/` serwowane przez FastAPI jako StaticFiles
+- [ ] Brak błędów w konsoli przeglądarki przy normalnym użytkowaniu
 
 ---
 

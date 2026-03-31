@@ -11,27 +11,26 @@ Tech stack: `Python 3.12+`, `FastAPI`, `PostgreSQL`, `SQLAlchemy`, `Alembic`, `P
 ## Commands
 
 ```bash
-# Install dependencies
+# Backend — run from backend/
 pip install -e ".[dev]"
-
-# Run server (local)
 uvicorn app.main:app --reload
 
-# Run all tests
+# Backend — tests
 pytest
+pytest backend/tests/unit/test_pricing_service.py   # single module
+pytest backend/tests/balance/                        # balance suite only
 
-# Run tests for a single module
-pytest backend/tests/unit/test_pricing_service.py
-
-# Run only balance tests
-pytest backend/tests/balance/
-
-# Database migrations
+# Backend — migrations
 alembic upgrade head
 alembic revision --autogenerate -m "description"
+
+# Frontend — run from frontend/
+npm install
+npm run dev     # Vite dev server on :5173, proxies /api/* → localhost:8000
+npm run build   # outputs frontend/dist/ (served by FastAPI in prod)
 ```
 
-Environment variables (see `.env.example`):
+Environment variables (see `backend/.env.example`):
 - `DATABASE_URL` — PostgreSQL connection string
 - `SNAPSHOT_SECRET` — HMAC key for snapshot signing
 - `TEST_MODE` — `true` enables debug endpoints (`/api/v1/test/*`), `false` blocks them hard
@@ -65,9 +64,18 @@ Balance changes follow a strict approval pipeline: AI proposal → `pending` →
 ### Test/Admin endpoints
 All routes under `/api/v1/test/` (`simulate-time`, `correct-state`) must be hard-blocked when `TEST_MODE=false`. This check lives in `api/deps.py`.
 
+## Frontend (Svelte 5 + Vite)
+
+Stack: Svelte 5 + Vite. Folder: `frontend/`.
+
+- Dev: two servers — Vite `:5173` (proxies `/api/*` → FastAPI `:8000`), FastAPI `:8000`
+- Prod: `npm run build` → `frontend/dist/` served by FastAPI as StaticFiles
+- Player ID: fetched via `POST /game/start` on first load, stored in `localStorage`, sent as `X-Player-ID` header on every request
+- State: Svelte stores (`gameStore`, `walletStore`, `unitsStore`, `upgradesStore`), polled every 5s
+
 ## Implementation phases
 
-- **Phase 1 (current):** MVP+ Core — full idle loop, economy, prestige v1, TDD, test-mode. Tasks are sequential: finish Task N before starting Task N+1.
+- **Phase 1 (current):** MVP+ Core — full idle loop, economy, prestige v1, TDD, test-mode, frontend MVP. Tasks 01–11, sequential.
 - **Phase 2:** AI balance proposals + approval flow, AI content generator, minigames, seasonal sinks.
 - **Phase 3:** Liveops, multi-user prep, performance, security hardening.
 
