@@ -27,6 +27,7 @@ class UpgradeDefinition(Base):
     cost_amount: Mapped[Decimal] = mapped_column(_DECIMAL)
     effect_type: Mapped[str] = mapped_column(String(32))
     effect_value: Mapped[Decimal] = mapped_column(_DECIMAL)
+    target_unit_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     is_repeatable: Mapped[bool] = mapped_column(Boolean, default=False)
     survives_prestige: Mapped[bool] = mapped_column(Boolean, default=False)
 

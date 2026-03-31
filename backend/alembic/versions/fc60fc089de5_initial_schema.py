@@ -9,6 +9,7 @@ Create Date: 2026-03-31
 from collections.abc import Sequence
 
 import sqlalchemy as sa
+
 from alembic import op
 
 revision: str = "fc60fc089de5"
@@ -86,6 +87,7 @@ def upgrade() -> None:
         sa.Column("cost_amount", _DECIMAL, nullable=False),
         sa.Column("effect_type", sa.String(32), nullable=False),
         sa.Column("effect_value", _DECIMAL, nullable=False),
+        sa.Column("target_unit_id", sa.String(64), nullable=True),
         sa.Column("is_repeatable", sa.Boolean(), nullable=False, server_default="false"),
         sa.Column("survives_prestige", sa.Boolean(), nullable=False, server_default="false"),
     )
