@@ -5,6 +5,7 @@ import uuid
 from fastapi import Depends, Header, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.db.models.player_state import PlayerState
 from app.db.repositories.player_state import PlayerStateRepository
 from app.db.session import get_db
@@ -41,3 +42,17 @@ async def get_current_player(
             status_code=404, detail=f"Player '{x_player_id}' not found"
         )
     return player
+
+
+def require_test_mode() -> None:
+    """Block access when TEST_MODE is disabled.
+
+    Returns:
+        None if TEST_MODE is enabled.
+
+    Raises:
+        HTTPException(404): When ``settings.test_mode`` is False, mimicking a
+            non-existent route so the endpoint is invisible to non-admin callers.
+    """
+    if not settings.test_mode:
+        raise HTTPException(status_code=404, detail="Not found")

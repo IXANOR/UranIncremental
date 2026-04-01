@@ -299,16 +299,36 @@ Tasks are sequential — do not start Task N+1 until Task N is `done`.
 ---
 
 #### Post-task notes
-- **Date:**
-- **Commit(s):**
+- **Date:** 2026-04-01
+- **Commit(s):** TBD
 - **Scope implemented:**
+  - `app/api/deps.py` — dodano `require_test_mode()`: dependency sprawdzająca `settings.test_mode`; gdy `False` — HTTP 404
+  - `app/schemas/test_admin.py` — `SimulateTimeRequest` (z walidatorem `seconds > 0`), `SimulateTimeResponse`, `WalletPatch`, `UnitPatch`, `CorrectStateRequest`, `CorrectStateResponse`
+  - `app/api/routes/test_admin.py` — `POST /api/v1/test/simulate-time` + `POST /api/v1/test/correct-state`; router używa `dependencies=[Depends(require_test_mode)]` — blokada działa na poziomie całego routera
+  - `app/main.py` — zarejestrowany `test_admin_router`
+  - `backend/Dockerfile` — multi-stage: builder (venv + deps), runtime (lean image + `PYTHONPATH=/app`)
+  - `backend/entrypoint.sh` — `alembic upgrade head` + `python -m app.db.seed` + `exec "$@"`
+  - `docker-compose.yml` (root) — serwisy `db` (postgres:16-alpine z healthcheck) + `backend` (build z context ./backend, `depends_on: condition: service_healthy`)
+  - `.env.example` (root) — `SNAPSHOT_SECRET` + `TEST_MODE` dla docker-compose
+  - `backend/.env.example` — zaktualizowany o uwagę odnośnie `DATABASE_URL` przy Docker
+  - 12 testów integracyjnych (`test_test_admin.py`)
 - **Architectural decisions:**
+  - `require_test_mode` jest synchronicznym dependency (bez `async`) — FastAPI obsługuje sync deps normalnie; sprawdza `settings.test_mode` per-request, więc monkeypatching w testach działa bez restartowania apki
+  - Router-level `dependencies=[Depends(require_test_mode)]` zamiast per-endpoint — eliminuje możliwość zapomnienia o blokadzie przy dodaniu nowego endpointu testowego
+  - `simulate-time` czyści `snapshot_signature = ""` przed tickiem — unika false-positive `SnapshotSignatureError` po manualnej modyfikacji `last_tick_at` (zmieniony `last_tick_at` nie pasowałby do istniejącego HMAC)
+  - `correct-state` również czyści `snapshot_signature = ""` po patchu — stan po korekcji jest "świeży", następny `GET /state` podpisuje od nowa
+  - Docker: `PYTHONPATH=/app` w runtime stage sprawia, że kod z `COPY . .` ma pierwszeństwo przed "zainstalowaną" paczką z buildera; venv z buildera dostarcza tylko zależności zewnętrzne
+  - `DATABASE_URL` wstrzyknięty bezpośrednio przez compose (nie przez `.env` gracza) — brak ryzyka konfliktu między lokalnym `.env` a compose
 - **Risks / constraints:**
+  - `docker compose up` z `volumes: - ./backend:/app` mount przesłania pliki z obrazu (włącznie z `entrypoint.sh`) — w środowisku dev to OK, bo lokalny kod jest aktualny; w prod należy usunąć ten mount
+  - Seed jest idempotentny (`if data["id"] not in existing`), więc wielokrotne uruchomienie entrypoint nie duplikuje danych
 - **Notes for next tasks:**
+  - Task 07: `snapshot_sign_service` i `game_loop_service` są już gotowe; Task 07 skupia się na brakujących elementach: walidacji delta anomalii i logowaniu do `event_log`
+  - Task 07: patrz post-task notes Task 03 — snapshot signing działa, ale brakuje walidacji delta < 0 i delta > cap*2
 - **Test status:**
-  - Unit:
-  - Integration:
-  - Balance:
+  - Unit: 59 PASSED
+  - Integration: 12 PASSED (test/admin) + 19 PASSED (MVP endpoints) + 1 PASSED (health) = 32 total
+  - Balance: 7 PASSED
 
 ---
 
