@@ -2,12 +2,14 @@ import uuid
 from datetime import UTC, datetime
 from decimal import Decimal
 
-from sqlalchemy import Boolean, ForeignKey, Numeric, String
+from sqlalchemy import Boolean, DateTime, ForeignKey, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
 
 _DECIMAL = Numeric(precision=28, scale=10)
+_TZ = DateTime(timezone=True)
+_now = lambda: datetime.now(UTC)  # noqa: E731
 
 
 class UpgradeDefinition(Base):
@@ -46,4 +48,4 @@ class PlayerUpgrade(Base):
     )
     upgrade_id: Mapped[str] = mapped_column(ForeignKey("upgrade_definition.id"), primary_key=True)
     level: Mapped[int] = mapped_column(default=1)
-    purchased_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(UTC))
+    purchased_at: Mapped[datetime] = mapped_column(_TZ, default=_now)

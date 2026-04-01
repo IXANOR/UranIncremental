@@ -2,10 +2,13 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import JSON, Boolean, String
+from sqlalchemy import JSON, Boolean, DateTime, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
+
+_TZ = DateTime(timezone=True)
+_now = lambda: datetime.now(UTC)  # noqa: E731
 
 
 class BalanceConfig(Base):
@@ -22,7 +25,7 @@ class BalanceConfig(Base):
     version_tag: Mapped[str] = mapped_column(String(64), unique=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=False)
     json_blob: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
-    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(UTC))
+    created_at: Mapped[datetime] = mapped_column(_TZ, default=_now)
 
 
 class BalanceTestRun(Base):
@@ -39,4 +42,4 @@ class BalanceTestRun(Base):
     test_suite_version: Mapped[str] = mapped_column(String(64))
     status: Mapped[str] = mapped_column(String(16))  # passed | failed
     summary: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
-    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(UTC))
+    created_at: Mapped[datetime] = mapped_column(_TZ, default=_now)
