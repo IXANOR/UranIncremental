@@ -14,7 +14,7 @@ from decimal import Decimal
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.time_utils import compute_delta
+from app.core.time_utils import compute_delta, ensure_utc
 from app.db.models.player_state import PlayerState
 from app.db.models.unit import PlayerUnit
 from app.db.models.upgrade import PlayerUpgrade
@@ -114,6 +114,33 @@ async def tick(
             raise SnapshotSignatureError(
                 f"Snapshot signature mismatch for player {player.id}"
             )
+
+    # --- Delta anomaly detection --------------------------------------------
+    raw_delta_seconds = (ensure_utc(now) - ensure_utc(player.last_tick_at)).total_seconds()
+
+    if raw_delta_seconds < 0:
+        await EventLogRepository.create(
+            session,
+            player.id,
+            "delta_anomaly",
+            {
+                "type": "negative",
+                "raw_delta": raw_delta_seconds,
+                "version": player.version,
+            },
+        )
+    elif raw_delta_seconds > player.offline_cap_seconds * 2:
+        await EventLogRepository.create(
+            session,
+            player.id,
+            "delta_anomaly",
+            {
+                "type": "excessive",
+                "raw_delta": raw_delta_seconds,
+                "cap_seconds": player.offline_cap_seconds,
+                "version": player.version,
+            },
+        )
 
     # --- Delta time ---------------------------------------------------------
     is_offline = force_offline or (

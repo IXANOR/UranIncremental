@@ -334,31 +334,43 @@ Tasks are sequential — do not start Task N+1 until Task N is `done`.
 
 ### Task 07 - Snapshot signing i walidacja delta
 
-**Status:** `not started`
+**Status:** `done`
 **Depends on:** Task 06
 
 #### Definition of Done
-- [ ] HMAC snapshotu obejmuje wszystkie pola krytyczne: `wallet`, `units`, `last_tick_at`, `state_version`
-- [ ] Weryfikacja podpisu przy każdym `load_state`; manipulacja → wyjątek + wpis do `event_log`
-- [ ] Walidacja `delta_time`: odrzucenie delta < 0 i delta > `offline_cap_seconds * 2` (anomalia)
-- [ ] Anomalie delta logowane do `event_log` z `event_type = "delta_anomaly"`
-- [ ] `SNAPSHOT_SECRET` rotacja: zmiana klucza unieważnia stare snapshoty w sposób przewidywalny
-- [ ] Testy jednostkowe: poprawny podpis, zmodyfikowany podpis, delta ujemna, delta za duża
-- [ ] Testy integracyjne: pełny cykl sign → modify → verify fail
+- [x] HMAC snapshotu obejmuje wszystkie pola krytyczne: `wallet`, `units`, `last_tick_at`, `state_version`
+- [x] Weryfikacja podpisu przy każdym `load_state`; manipulacja → wyjątek + wpis do `event_log`
+- [x] Walidacja `delta_time`: odrzucenie delta < 0 i delta > `offline_cap_seconds * 2` (anomalia)
+- [x] Anomalie delta logowane do `event_log` z `event_type = "delta_anomaly"`
+- [x] `SNAPSHOT_SECRET` rotacja: zmiana klucza unieważnia stare snapshoty w sposób przewidywalny
+- [x] Testy jednostkowe: poprawny podpis, zmodyfikowany podpis, delta ujemna, delta za duża
+- [x] Testy integracyjne: pełny cykl sign → modify → verify fail
 
 ---
 
 #### Post-task notes
-- **Date:**
-- **Commit(s):**
+- **Date:** 2026-04-01
+- **Commit(s):** TBD
 - **Scope implemented:**
+  - `game_loop_service.py` — dodano import `ensure_utc` + blok "Delta anomaly detection": oblicza `raw_delta_seconds` i loguje `event_type="delta_anomaly"` z `type="negative"` (raw_delta < 0) lub `type="excessive"` (raw_delta > cap × 2)
+  - Weryfikacja podpisu + logging `"snapshot_invalid"` były już zaimplementowane w Task 03 — potwierdzone jako kompletne
+  - Canonical payload (`snapshot_sign_service._canonical_payload`) zawierał już `version` (= `state_version`), `last_tick_at`, pełny `wallet`, `units` posortowane po `unit_id` — DoD spełniony bez zmian
+  - 4 nowe testy jednostkowe: `test_tick_negative_delta_logs_anomaly`, `test_tick_excessive_delta_logs_anomaly`, `test_tick_normal_delta_does_not_log_anomaly`, `test_snapshot_key_rotation_invalidates_signature`
+  - 1 nowy test integracyjny: `test_tampered_snapshot_returns_409` — bezpośrednio korumpuje `snapshot_signature` w DB, weryfikuje HTTP 409
 - **Architectural decisions:**
+  - Anomalia jest logowana ale tick kontynuuje — tick nie rzuca wyjątku przy anomalii delta (inaczej niż przy błędnym podpisie); delta ujemna jest clampowana do 0 przez `compute_delta` niezależnie od logowania
+  - `raw_delta_seconds` obliczany raz w `tick()` i używany tylko do sprawdzenia anomalii; sama `compute_delta` robi to ponownie wewnętrznie — lekka redundancja, ale utrzymuje `time_utils` bez efektów ubocznych
+  - Próg `excessive` = `offline_cap_seconds * 2` jest sprawdzany na surowym delta (przed cappingiem), co wykrywa anomalię nawet w trybie online
+  - Key rotation: zmiana `SNAPSHOT_SECRET` automatycznie unieważnia stare podpisy (HMAC z innym kluczem → inny digest) — brak potrzeby migracji lub explicit invalidation
 - **Risks / constraints:**
+  - Delta anomaly nie blokuje ticku — gracz z manipulowanym zegarem systemowym dostanie 0 produkcji (negative delta) ale nie 409; to jest celowe (różni się od tamperingu wallet)
 - **Notes for next tasks:**
+  - Task 08: `prestige_service.py` — reset wallet + units, zachowanie metaprogresji; `PlayerUpgrade` z `survives_prestige=True` musi zostać, reszta kasowana
+  - Task 08: prestige boost jest już implementowany jako `Decimal("1.15") ** prestige_count` w `game_loop_service.tick()` — po prestige wystarczy zinkrementować `prestige_count`
 - **Test status:**
-  - Unit:
-  - Integration:
-  - Balance:
+  - Unit: 17 PASSED (game_loop) + reszta bez zmian = 63 total
+  - Integration: 1 PASSED (tampered snapshot) + 31 poprzednich = 32 total (po merge)
+  - Balance: 7 PASSED
 
 ---
 

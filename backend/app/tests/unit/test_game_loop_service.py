@@ -4,9 +4,12 @@ from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 import pytest
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.time_utils import compute_delta
+from app.db.models.events import EventLog
 from app.db.repositories.player_state import PlayerStateRepository
 from app.db.repositories.player_unit import PlayerUnitRepository
 from app.db.repositories.wallet import WalletRepository
@@ -264,3 +267,118 @@ async def test_tick_skips_verify_on_empty_signature(db_session: AsyncSession) ->
         result = await tick(db_session, p)
 
     assert result.player.snapshot_signature != ""
+
+
+# ---------------------------------------------------------------------------
+# game_loop_service.tick — delta anomaly detection
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_tick_negative_delta_logs_anomaly(db_session: AsyncSession) -> None:
+    """A negative raw delta (last_tick_at in the future) is logged as delta_anomaly."""
+    async with db_session.begin():
+        await seed(db_session)
+        player = await PlayerStateRepository.create(db_session)
+        # Push last_tick_at 60 s into the future → raw delta will be negative
+        player.last_tick_at = datetime.now(UTC) + timedelta(seconds=60)
+        player.last_online_at = datetime.now(UTC)
+
+    async with db_session.begin():
+        p = await PlayerStateRepository.get_by_id(db_session, player.id)
+        assert p is not None
+        result = await tick(db_session, p)
+
+    # Production should be zero (negative delta clamped to 0)
+    assert result.effective_delta_seconds == 0.0
+
+    # event_log must contain a delta_anomaly entry
+    rows = (
+        await db_session.execute(
+            select(EventLog)
+            .where(EventLog.player_id == player.id)
+            .where(EventLog.event_type == "delta_anomaly")
+        )
+    ).scalars().all()
+    assert len(rows) == 1
+    assert rows[0].payload["type"] == "negative"
+
+
+@pytest.mark.asyncio
+async def test_tick_excessive_delta_logs_anomaly(db_session: AsyncSession) -> None:
+    """A raw delta exceeding offline_cap * 2 is logged as delta_anomaly."""
+    async with db_session.begin():
+        await seed(db_session)
+        player = await PlayerStateRepository.create(db_session)
+        # default cap = 14400 s (4h); set last_tick_at > cap * 2 = 8h ago
+        player.last_tick_at = datetime.now(UTC) - timedelta(hours=9)
+        player.last_online_at = datetime.now(UTC)
+
+    async with db_session.begin():
+        p = await PlayerStateRepository.get_by_id(db_session, player.id)
+        assert p is not None
+        await tick(db_session, p)
+
+    rows = (
+        await db_session.execute(
+            select(EventLog)
+            .where(EventLog.player_id == player.id)
+            .where(EventLog.event_type == "delta_anomaly")
+        )
+    ).scalars().all()
+    assert len(rows) == 1
+    assert rows[0].payload["type"] == "excessive"
+    assert rows[0].payload["cap_seconds"] == 14400
+
+
+@pytest.mark.asyncio
+async def test_tick_normal_delta_does_not_log_anomaly(db_session: AsyncSession) -> None:
+    """A normal delta (within cap) produces no delta_anomaly event."""
+    async with db_session.begin():
+        await seed(db_session)
+        player = await PlayerStateRepository.create(db_session)
+        player.last_tick_at = datetime.now(UTC) - timedelta(seconds=30)
+        player.last_online_at = datetime.now(UTC)
+
+    async with db_session.begin():
+        p = await PlayerStateRepository.get_by_id(db_session, player.id)
+        assert p is not None
+        await tick(db_session, p)
+
+    rows = (
+        await db_session.execute(
+            select(EventLog)
+            .where(EventLog.player_id == player.id)
+            .where(EventLog.event_type == "delta_anomaly")
+        )
+    ).scalars().all()
+    assert len(rows) == 0
+
+
+# ---------------------------------------------------------------------------
+# snapshot_sign_service — key rotation
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_snapshot_key_rotation_invalidates_signature(
+    db_session: AsyncSession, monkeypatch
+) -> None:
+    """Changing SNAPSHOT_SECRET makes existing signatures fail verification."""
+    async with db_session.begin():
+        player = await PlayerStateRepository.create(db_session)
+        wallet = await WalletRepository.get_by_player(db_session, player.id)
+        assert wallet is not None
+        # Sign with current key
+        sig = snapshot_sign_service.sign(player, wallet, [])
+        player.snapshot_signature = sig
+
+    # Rotate the secret
+    monkeypatch.setattr(settings, "snapshot_secret", "rotated-secret-different-key")
+
+    async with db_session.begin():
+        p = await PlayerStateRepository.get_by_id(db_session, player.id)
+        w = await WalletRepository.get_by_player(db_session, player.id)
+        assert p is not None and w is not None
+        # Verification must fail with the new key
+        assert not snapshot_sign_service.verify(p, w, [])

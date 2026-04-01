@@ -335,3 +335,29 @@ async def test_claim_offline_missing_header(api_client: AsyncClient) -> None:
     """claim-offline without X-Player-ID returns 400."""
     resp = await api_client.post("/api/v1/time/claim-offline")
     assert resp.status_code == 400
+
+
+# ---------------------------------------------------------------------------
+# Snapshot integrity — tampered state returns 409
+# ---------------------------------------------------------------------------
+
+
+async def test_tampered_snapshot_returns_409(
+    api_client: AsyncClient, player, player_header: dict, seeded
+) -> None:
+    """GET /state returns 409 when the stored snapshot signature is corrupted."""
+    # First call signs the state
+    r1 = await api_client.get("/api/v1/game/state", headers=player_header)
+    assert r1.status_code == 200
+
+    # Directly corrupt the signature in the DB
+    from app.db.repositories.player_state import PlayerStateRepository
+
+    p = await PlayerStateRepository.get_by_id(seeded, player.id)
+    assert p is not None
+    p.snapshot_signature = "corrupted-signature-value"
+    await seeded.commit()
+
+    # Next call must detect tampering
+    r2 = await api_client.get("/api/v1/game/state", headers=player_header)
+    assert r2.status_code == 409
