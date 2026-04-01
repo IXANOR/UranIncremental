@@ -138,7 +138,7 @@ async def test_get_state_unknown_player(api_client: AsyncClient) -> None:
 
 
 async def test_get_state_success(api_client: AsyncClient, player, player_header: dict) -> None:
-    """GET /state returns player, wallet, and server_time after a tick."""
+    """GET /state returns player, wallet, server_time, units, and upgrades after a tick."""
     resp = await api_client.get("/api/v1/game/state", headers=player_header)
     assert resp.status_code == 200
     body = resp.json()
@@ -147,6 +147,22 @@ async def test_get_state_success(api_client: AsyncClient, player, player_header:
     assert "server_time" in body
     for currency in ("energy_drink", "u238", "u235", "u233", "meta_isotopes"):
         assert currency in body["wallet"]
+    # Task 11: state must include units and upgrades catalog
+    assert "units" in body, "GET /state must return units array"
+    assert "upgrades" in body, "GET /state must return upgrades array"
+    assert len(body["units"]) > 0
+    assert len(body["upgrades"]) > 0
+    unit = body["units"][0]
+    assert "unit_id" in unit
+    assert "name" in unit
+    assert "amount_owned" in unit
+    assert "next_cost" in unit
+    assert "production_rate_per_sec" in unit
+    upgrade = body["upgrades"][0]
+    assert "upgrade_id" in upgrade
+    assert "name" in upgrade
+    assert "cost_amount" in upgrade
+    assert "purchased_level" in upgrade
 
 
 async def test_get_state_increments_version(

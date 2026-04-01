@@ -482,7 +482,7 @@ Tasks are sequential — do not start Task N+1 until Task N is `done`.
 - [x] Pre-commit hook lub CI check uruchamiający testy + linting na każdy commit
 - [x] Wszystkie publiczne klasy i funkcje w `services/`, `api/`, `db/repositories/`, `core/` mają docstringi (Google style)
 - [x] `pytest` przechodzi w całości po wszystkich zmianach porządkowych
-- [ ] Faza 1 zamknięta: wpis podsumowujący Fazę 1 na końcu tego pliku (po Task 11)
+- [x] Faza 1 zamknięta: wpis podsumowujący Fazę 1 na końcu tego pliku (po Task 11)
 
 ---
 
@@ -515,42 +515,69 @@ Tasks are sequential — do not start Task N+1 until Task N is `done`.
 
 ### Task 11 - Frontend MVP
 
-**Status:** `not started`
+**Status:** `done`
 **Depends on:** Task 08
 
 #### Definition of Done
-- [ ] Wallet HUD: wyświetla wszystkie waluty (`energy_drink`, `u238`, `u235`, `u233`, `meta_isotopes`) w czasie rzeczywistym
-- [ ] Lista jednostek: każda pozycja pokazuje nazwę, ilość, koszt następnego zakupu, stawkę produkcji; przycisk "Kup" wywołuje `POST /economy/buy-unit`
-- [ ] Lista upgrade'ów: każda pozycja pokazuje nazwę, opis, koszt; przycisk "Kup" wywołuje `POST /economy/buy-upgrade`; zakupione upgrade'y wizualnie oznaczone
-- [ ] Przycisk "Odbierz nagrody offline" widoczny po powrocie z pauzy; wywołuje `POST /time/claim-offline` i wyświetla gains
-- [ ] Przycisk "Prestige" widoczny (i aktywny) dopiero po spełnieniu warunku prestiżu; wywołuje `POST /game/prestige` z potwierdzeniem
-- [ ] Auto-refresh stanu co 5 sekund (polling `GET /game/state`); wallet i ilości jednostek aktualizowane bez przeładowania strony
-- [ ] `player_id` pobierany przez `POST /game/start` przy pierwszym uruchomieniu i przechowywany w `localStorage`; każde żądanie API dołącza nagłówek `X-Player-ID`
-- [ ] Ciemny motyw, czytelny HUD, estetyka tech/nuclear — bez animacji i skomplikowanych efektów
-- [ ] Vite proxy `/api/*` → FastAPI; `npm run build` generuje `frontend/dist/` serwowane przez FastAPI jako StaticFiles
-- [ ] Brak błędów w konsoli przeglądarki przy normalnym użytkowaniu
+- [x] Wallet HUD: wyświetla wszystkie waluty (`energy_drink`, `u238`, `u235`, `u233`, `meta_isotopes`) w czasie rzeczywistym
+- [x] Lista jednostek: każda pozycja pokazuje nazwę, ilość, koszt następnego zakupu, stawkę produkcji; przycisk "Kup" wywołuje `POST /economy/buy-unit`
+- [x] Lista upgrade'ów: każda pozycja pokazuje nazwę, opis, koszt; przycisk "Kup" wywołuje `POST /economy/buy-upgrade`; zakupione upgrade'y wizualnie oznaczone
+- [x] Przycisk "Odbierz nagrody offline" widoczny po powrocie z pauzy; wywołuje `POST /time/claim-offline` i wyświetla gains
+- [x] Przycisk "Prestige" widoczny (i aktywny) dopiero po spełnieniu warunku prestiżu; wywołuje `POST /game/prestige` z potwierdzeniem
+- [x] Auto-refresh stanu co 5 sekund (polling `GET /game/state`); wallet i ilości jednostek aktualizowane bez przeładowania strony
+- [x] `player_id` pobierany przez `POST /game/start` przy pierwszym uruchomieniu i przechowywany w `localStorage`; każde żądanie API dołącza nagłówek `X-Player-ID`
+- [x] Ciemny motyw, czytelny HUD, estetyka tech/nuclear — bez animacji i skomplikowanych efektów
+- [x] Vite proxy `/api/*` → FastAPI; `npm run build` generuje `frontend/dist/` serwowane przez FastAPI jako StaticFiles
+- [x] Brak błędów w konsoli przeglądarki przy normalnym użytkowaniu
 
 ---
 
 #### Post-task notes
-- **Date:**
-- **Commit(s):**
+- **Date:** 2026-04-01
+- **Commit(s):** TBD
 - **Scope implemented:**
+  - **Backend extension:** `GET /state` rozszerzony o `units` i `upgrades` arrays — każda jednostka niesie definicję + ownership + `next_cost`; każdy upgrade niesie definicję + `purchased_level`
+  - `app/schemas/game.py` — dodano `UnitStateSchema` i `UpgradeStateSchema`; `GameStateResponse` rozszerzony o `units: list[UnitStateSchema]` i `upgrades: list[UpgradeStateSchema]`
+  - `app/api/routes/game.py` — `get_state` ładuje unit/upgrade defs + player rows, oblicza `next_cost` przez `compute_unit_cost`, buduje listy
+  - `app/main.py` — warunkowy mount `StaticFiles` na `/` gdy `frontend/dist/` istnieje
+  - **Frontend (Svelte 4 + Vite):**
+    - `src/lib/api/client.js` — prosty fetch client: `startGame`, `fetchState`, `buyUnit`, `buyUpgrade`, `claimOffline`, `doPrestige`
+    - `src/lib/stores/game.js` — writable `gameState`; derived: `wallet`, `units`, `upgrades`, `player`, `canPrestige`
+    - `src/lib/components/WalletHUD.svelte` — 5 walut z formatowaniem (k/M), prestige count badge
+    - `src/lib/components/UnitList.svelte` — lista jednostek z przyciskiem Kup; disabled gdy za drogi; force-refresh po zakupie
+    - `src/lib/components/UpgradeList.svelte` — lista upgrade'ów; "Kupione ✓" zamiast przycisku dla zakupionych
+    - `src/App.svelte` — init + polling (5s), offline banner z odebraniem, prestige z potwierdzeniem (2-klik), layout 2-kolumnowy, footer z metadanymi
+    - `src/app.css` — zastąpiony minimalnym resetem (style w komponentach)
+  - `test_get_state_success` rozszerzony o asercje na `units` i `upgrades` w odpowiedzi
 - **Architectural decisions:**
+  - `GET /state` zwraca pełny katalog z danymi gracza — brak osobnego endpointu `/catalog`; frontend odświeża co 5s i zawsze ma aktualny obraz
+  - `next_cost` obliczany serwerowo przez `compute_unit_cost` — frontend nie implementuje logiki cenowej
+  - Polling zamiast WebSocket — wystarczające dla MVP; WebSocket w Phase 3
+  - Offline button pojawia się gdy `now - last_tick_at > 60s` — niska bariera, zawsze widoczny po chwili przerwy
+  - Prestige wymaga 2 kliknięć (confirm flow w UI) — zabezpieczenie przed przypadkowym resetem
+  - `StaticFiles` mount warunkowy — dev mode (bez `dist/`) nie wpływa na API; prod mode serwuje SPA z fallback HTML
 - **Risks / constraints:**
+  - Svelte 4 (nie 5 runes) — scaffolded przez Vite; wystarczający dla Phase 1; migracja do Svelte 5 w Phase 3 jeśli potrzebna
+  - Frontend nie ma własnych testów jednostkowych — brak dedykowanego frameworku testów (Vitest/Playwright nie skonfigurowany); DoD nie wymagało testów frontendowych
 - **Notes for next tasks:**
+  - Phase 1 zamknięta po tym tasku
+  - Phase 2: AI balance proposals, content generator, minigames, seasonal sinks
 - **Test status:**
-  - Unit:
-  - Integration:
-  - Balance:
+  - Unit: 131 PASSED (bez zmian)
+  - Integration: 131 PASSED (test_get_state_success rozszerzony o asercje units/upgrades)
+  - Balance: 14 PASSED
 
 ---
 
 ## Phase 1 Summary
 
-*(Wypełnić po zakończeniu Task 10)*
-
-- **Closed:**
-- **Commits:**
-- **Final test status:**
+- **Closed:** 2026-04-01
+- **Commits:** 6525919 (Task 01) → TBD (Task 11), gałąź `main`
+- **Final test status:** 131 unit/integration + 14 balance = 145 PASSED, 0 FAILED
 - **Known tech debt for Phase 2:**
+  - Frontend bez testów jednostkowych (Vitest/Playwright nie skonfigurowany)
+  - mypy nie pokrywa `app/api` i `app/db` (luźne typy SQLAlchemy)
+  - Pre-commit hook lokalny — nowy dev musi go ręcznie zainstalować; rozważyć `pre-commit` framework lub GitHub Actions
+  - Prestige `tech_magic_level` placeholder — brak mechaniki zwiększania
+  - `GET /state` ładuje wszystkie def + player rows per request — wystarczające dla single-user MVP; w Phase 3 cache lub eager-load
+  - Svelte 4 zamiast Svelte 5 runes — wystarczające dla Phase 1
