@@ -138,6 +138,8 @@ async def buy_unit(
         amount_owned=amount_owned + quantity,
     )
 
+    # Wallet and units changed — clear the snapshot so the next tick re-signs.
+    player.snapshot_signature = ""
     await session.flush()
     return BuyUnitResult(wallet=wallet, player_unit=new_player_unit, total_cost=total_cost)
 
@@ -196,6 +198,8 @@ async def buy_upgrade(
 
     await _apply_upgrade_effect(session, player, upgrade_def)
 
+    # Wallet and player state changed — clear the snapshot so the next tick re-signs.
+    player.snapshot_signature = ""
     await session.flush()
     return BuyUpgradeResult(wallet=wallet, player_upgrade=player_upgrade, upgrade_def=upgrade_def)
 

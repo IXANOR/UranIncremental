@@ -197,6 +197,49 @@ async def test_buy_unit_success(api_client: AsyncClient, player, player_header: 
     assert Decimal(body["wallet_after"]["energy_drink"]) < Decimal("1000")
 
 
+async def test_get_state_after_buy_unit_no_signature_error(
+    api_client: AsyncClient, player, player_header: dict
+) -> None:
+    """GET /state after POST /buy-unit must not raise a snapshot mismatch (409).
+
+    buy_unit changes the wallet without re-signing; the snapshot_signature must
+    be cleared so the next tick skips verification and re-signs from scratch.
+    """
+    # establish a signed snapshot
+    r1 = await api_client.get("/api/v1/game/state", headers=player_header)
+    assert r1.status_code == 200
+
+    # buy changes wallet → old signature now invalid
+    rb = await api_client.post(
+        "/api/v1/economy/buy-unit",
+        json={"unit_id": "barrel", "quantity": 1},
+        headers=player_header,
+    )
+    assert rb.status_code == 200
+
+    # next GET /state must succeed, not 409
+    r2 = await api_client.get("/api/v1/game/state", headers=player_header)
+    assert r2.status_code == 200, f"Expected 200 but got {r2.status_code}: {r2.json()}"
+
+
+async def test_get_state_after_buy_upgrade_no_signature_error(
+    api_client: AsyncClient, player, player_header: dict
+) -> None:
+    """GET /state after POST /buy-upgrade must not raise a snapshot mismatch (409)."""
+    r1 = await api_client.get("/api/v1/game/state", headers=player_header)
+    assert r1.status_code == 200
+
+    rb = await api_client.post(
+        "/api/v1/economy/buy-upgrade",
+        json={"upgrade_id": "barrel_opt_mk1"},
+        headers=player_header,
+    )
+    assert rb.status_code == 200
+
+    r2 = await api_client.get("/api/v1/game/state", headers=player_header)
+    assert r2.status_code == 200, f"Expected 200 but got {r2.status_code}: {r2.json()}"
+
+
 async def test_buy_unit_bulk(api_client: AsyncClient, player, player_header: dict) -> None:
     """Buying quantity=3 barrels returns new_amount_owned=3."""
     resp = await api_client.post(
