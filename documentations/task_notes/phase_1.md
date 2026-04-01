@@ -569,11 +569,42 @@ Tasks are sequential — do not start Task N+1 until Task N is `done`.
 
 ---
 
+---
+
+## Dodatkowe zmiany po Tasku 11
+
+**Data:** 2026-04-01
+**Commity:** 66edade → 06e7b90
+
+### Poprawki i bugfixy po uruchomieniu
+
+- **fix(task-11) `66edade`** — `WalletHUD.svelte`, `UnitList.svelte`, `UpgradeList.svelte`, `Counter.svelte` były zignorowane przez regułę `lib/` w `.gitignore` w momencie commita task-11; dodane retroaktywnie
+- **fix(scripts)** — `run_backend.bat` auto-startuje Docker service `db`, nadpisuje `DATABASE_URL`; `.bat` zamiast `.sh` dla Windows
+- **fix(models) `d5bc80e`** — wszystkie kolumny `datetime` zmienione na `DateTime(timezone=True)` + migracja Alembic z `AT TIME ZONE 'UTC'`; naprawa błędu `can't subtract offset-naive and offset-aware datetimes` z PostgreSQL
+- **fix(economy) `fad8039`** — `buy_unit`/`buy_upgrade` czyściły `snapshot_signature` przed flush; naprawa błędu 409 po zakupie
+- **fix(game_loop) `4ad5a2b`** — `await session.refresh(wallet)` po flush przed `sign()` — naprawa rozbieżności precyzji Decimal (Python vs PostgreSQL `Numeric(28,10)`)
+
+### Ulepszenia UI / gameplay
+
+- **cheat menu `9ec75b3`** — `CheatPanel.svelte` widoczny gdy `TEST_MODE=true`; symulacja czasu z presetami; polling skrócony z 5000ms do 500ms; `test_mode` w `GameStateResponse`
+- **badge prestige `bea4c63`** — `★ prestige` zmieniony na `↺ trwałe` z tooltipem; rebalans produkcji ×3 (barrel 0.3, mini_reactor 1.5, isotope_lab 12, processing_plant 30, uranium_mine 120 ED/s); `seed()` zmieniony na upsert
+- **produkcja w UI `239604a`** — `WalletHUD` pokazuje sumę produkcji per zasób; `UnitList` pokazuje łączną produkcję floty (`amount_owned × rate × mult`); stopka z mnożnikiem prestige
+- **info bar prestige `0cb4a3c`** — stały pasek opisujący mechanikę prestige (wymóg, reset, nagroda, trwałe ulepszenia)
+- **skalujący wymóg prestige `06e7b90`** — `prestige_requirement(count) = 1 × 2^count`; wymóg rośnie 1→2→4→8 U-238; `GameStateResponse` zawiera `prestige_next_requirement`; frontend czyta wartość ze stanu; +2 testy (pure unit + integration)
+
+### Test status po dodatkowych zmianach
+
+- Unit + Integration: **135 PASSED**
+- Balance: **14 PASSED**
+- Total: **149 PASSED, 0 FAILED**
+
+---
+
 ## Phase 1 Summary
 
 - **Closed:** 2026-04-01
-- **Commits:** 6525919 (Task 01) → TBD (Task 11), gałąź `main`
-- **Final test status:** 131 unit/integration + 14 balance = 145 PASSED, 0 FAILED
+- **Commits:** 6525919 (Task 01) → 06e7b90 (dodatkowe zmiany), gałąź `main`
+- **Final test status:** 135 unit/integration + 14 balance = **149 PASSED, 0 FAILED**
 - **Known tech debt for Phase 2:**
   - Frontend bez testów jednostkowych (Vitest/Playwright nie skonfigurowany)
   - mypy nie pokrywa `app/api` i `app/db` (luźne typy SQLAlchemy)
