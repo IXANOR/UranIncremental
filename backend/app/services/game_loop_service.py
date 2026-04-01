@@ -216,6 +216,12 @@ async def tick(
     # --- Persist changes ----------------------------------------------------
     await session.flush()
 
+    # Reload wallet so sign() uses the DB-rounded Numeric(28,10) values, not the
+    # full-precision in-memory Decimals.  Without this, str(wallet.energy_drink)
+    # in _canonical_payload would differ between the signing tick and the next
+    # tick's verify, causing a permanent signature mismatch.
+    await session.refresh(wallet)
+
     await PlayerStateRepository.update(
         session,
         player,
