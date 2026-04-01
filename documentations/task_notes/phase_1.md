@@ -289,6 +289,12 @@ Tasks are sequential — do not start Task N+1 until Task N is `done`.
 - [ ] Test: przy `TEST_MODE=false` wywołanie endpointów debug zwraca `404`
 - [ ] Test: przy `TEST_MODE=true` `simulate-time` poprawnie modyfikuje stan i `state_version`
 - [ ] Test: przy `TEST_MODE=true` `correct-state` patchuje tylko podane pola
+- [ ] **Docker:** `Dockerfile` dla backendu (multi-stage: builder + runtime, Python 3.12-slim)
+- [ ] **Docker:** `docker-compose.yml` w root projektu z serwisami: `db` (postgres:16-alpine), `backend` (FastAPI + uvicorn), opcjonalnie `frontend` (Vite dev lub pre-built)
+- [ ] **Docker:** `backend/.env.example` zaktualizowane o `DATABASE_URL` pasujące do service name z compose (`postgresql+asyncpg://user:pass@db:5432/uran`)
+- [ ] **Docker:** `docker compose up` odpala całą aplikację bez żadnej konfiguracji lokalnej (poza skopiowaniem `.env.example` → `.env`)
+- [ ] **Docker:** `alembic upgrade head` + seed wywoływane automatycznie przez entrypoint przy starcie backendu
+- [ ] **Docker:** `pytest` przechodzi zarówno lokalnie jak i wewnątrz kontenera (`docker compose exec backend pytest`)
 
 ---
 
