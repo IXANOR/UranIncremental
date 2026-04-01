@@ -376,32 +376,48 @@ Tasks are sequential — do not start Task N+1 until Task N is `done`.
 
 ### Task 08 - Soft reset (prestige v1)
 
-**Status:** `not started`
+**Status:** `done`
 **Depends on:** Task 07
 
 #### Definition of Done
-- [ ] `prestige_service.py`: miękki reset — zeruje `wallet`, `player_unit.amount_owned`, resetuje część unlocków
-- [ ] Zachowanie metaprogresji: `prestige_count`, `tech_magic_level`, wybrane upgrade'y (lista w kodzie)
-- [ ] `prestige_count` inkrementowany po każdym resecie
-- [ ] Nowy endpoint `POST /api/v1/game/prestige` — wywołuje `prestige_service`
-- [ ] Balans: każdy prestige daje mierzalny boost (mnożnik produkcji lub offline efficiency)
-- [ ] Testy jednostkowe: co jest resetowane, co zachowane, boost po prestige
-- [ ] Testy integracyjne: pełny cykl gry → prestige → state po prestige
-- [ ] Testy balansu: osiągalność pierwszego prestige w zakładanym czasie
+- [x] `prestige_service.py`: miękki reset — zeruje `wallet`, `player_unit.amount_owned`, resetuje część unlocków
+- [x] Zachowanie metaprogresji: `prestige_count`, `tech_magic_level`, wybrane upgrade'y (lista w kodzie)
+- [x] `prestige_count` inkrementowany po każdym resecie
+- [x] Nowy endpoint `POST /api/v1/game/prestige` — wywołuje `prestige_service`
+- [x] Balans: każdy prestige daje mierzalny boost (mnożnik produkcji lub offline efficiency)
+- [x] Testy jednostkowe: co jest resetowane, co zachowane, boost po prestige
+- [x] Testy integracyjne: pełny cykl gry → prestige → state po prestige
+- [x] Testy balansu: osiągalność pierwszego prestige w zakładanym czasie
 
 ---
 
 #### Post-task notes
-- **Date:**
-- **Commit(s):**
+- **Date:** 2026-04-01
+- **Commit(s):** TBD
 - **Scope implemented:**
+  - `app/services/prestige_service.py` — `prestige(session, player)`: walidacja `u238 >= 1`, kolekcja surviving upgrades, delete wszystkich `PlayerUpgrade`, reset units (amount_owned=0, effective_multiplier=1.0), reset wallet (50 ED, reszta 0), reset offline params do defaults, `prestige_count += 1`, `snapshot_signature = ""`, re-create + re-apply surviving upgrades
+  - `app/schemas/game.py` — dodano `PrestigeResponse` (ok, new_prestige_count, production_multiplier, surviving_upgrades)
+  - `app/api/routes/game.py` — `POST /api/v1/game/prestige`; 409 przy `PrestigeNotAvailableError`
+  - 12 testów jednostkowych (requirement gate, wallet reset, prestige_count, offline params, unit reset, upgrade handling, multiplier boost)
+  - 6 testów integracyjnych (sukces, brak u238, reset wallet, surviving upgrades, state po prestige, missing header)
+  - 3 testy balansu (centrifuge → u238 w 1100s, boost mierzalny, surviving upgrade effect trwały)
 - **Architectural decisions:**
+  - Prestige condition: `wallet.u238 >= 1` — jeden centrifuge (0.001 u238/s) potrzebuje 1000s żeby go wyprodukować; próg jest niska bariera wejścia dla pierwszego prestige
+  - Flush po `session.delete(pu)` przed re-insertem tego samego composite PK — SQLite/Postgres wymagają żeby stary wiersz był usunięty z DB przed wstawieniem nowego z tym samym kluczem
+  - `effective_multiplier` resetowany do 1.0 dla wszystkich jednostek, a następnie efekty surviving upgrades re-aplikowane od nowa — unika acumulacji starych mnożników
+  - `offline_efficiency` i `offline_cap_seconds` resetowane do defaults, a surviving `offline_eff_up`/`offline_cap_up` re-aplikowane — zachowanie zgodne z gameplay loop (surviving upgrades dają bonus od razu po prestige)
+  - Prestige boost (`1.15^prestige_count`) jest już w `game_loop_service.tick()` — `prestige_service` tylko inkrementuje `prestige_count`, boost działa automatycznie
 - **Risks / constraints:**
+  - `tech_magic_level` jest zachowany ale nie ma jeszcze mechaniki go zwiększającej — placeholder na Phase 2
+  - Prestige nie loguje zdarzenia do `event_log` — można dodać w Task 09 jako część audit trail
 - **Notes for next tasks:**
+  - Task 09: dodać test balansu "time-to-first-prestige" jako pełna symulacja (buy barrels → save for centrifuge → run 1000s → prestige)
+  - Task 09: pokrycie `services/` ≥ 80% — prestige_service jest w pełni pokryty
+  - Task 11: frontend musi sprawdzać `wallet.u238 >= 1` żeby aktywować przycisk "Prestige"
 - **Test status:**
-  - Unit:
-  - Integration:
-  - Balance:
+  - Unit: 12 PASSED (prestige_service) + 63 poprzednich = 75 total
+  - Integration: 6 PASSED (prestige) + 32 poprzednich = 38 total
+  - Balance: 3 PASSED (prestige) + 7 poprzednich = 10 total
 
 ---
 

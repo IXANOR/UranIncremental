@@ -1,5 +1,7 @@
 """Game management endpoints."""
 
+from decimal import Decimal
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -10,10 +12,13 @@ from app.db.session import get_db
 from app.schemas.game import (
     GameStateResponse,
     PlayerStateSchema,
+    PrestigeResponse,
     StartGameResponse,
     WalletSchema,
 )
 from app.services.game_loop_service import SnapshotSignatureError, tick
+from app.services.prestige_service import PrestigeNotAvailableError
+from app.services.prestige_service import prestige as run_prestige
 
 router = APIRouter(prefix="/api/v1/game", tags=["game"])
 
@@ -72,4 +77,40 @@ async def get_state(
         player=PlayerStateSchema.model_validate(result.player),
         wallet=WalletSchema.model_validate(result.wallet),
         server_time=result.server_time,
+    )
+
+
+@router.post("/prestige", response_model=PrestigeResponse)
+async def prestige_endpoint(
+    player: PlayerState = Depends(get_current_player),
+    session: AsyncSession = Depends(get_db),
+) -> PrestigeResponse:
+    """Perform a soft reset and advance prestige_count by 1.
+
+    Resets the wallet and unit inventory back to starting values.  Upgrades
+    marked ``survives_prestige=True`` are retained and their effects
+    re-applied.  The production multiplier permanently increases by ×1.15
+    per prestige (applied in the game loop as 1.15^prestige_count).
+
+    Args:
+        player: Authenticated player resolved from the ``X-Player-ID`` header.
+        session: Async database session injected by ``get_db``.
+
+    Returns:
+        PrestigeResponse with the new prestige_count, production_multiplier,
+        and the list of upgrade IDs that survived the reset.
+
+    Raises:
+        HTTPException(409): If the player has not met the u238 threshold.
+    """
+    try:
+        result = await run_prestige(session, player)
+        await session.commit()
+    except PrestigeNotAvailableError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    return PrestigeResponse(
+        ok=True,
+        new_prestige_count=result.new_prestige_count,
+        production_multiplier=float(Decimal("1.15") ** result.new_prestige_count),
+        surviving_upgrades=result.surviving_upgrade_ids,
     )

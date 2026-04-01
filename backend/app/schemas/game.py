@@ -46,3 +46,12 @@ class StartGameResponse(BaseModel):
     player_id: uuid.UUID
     state_version: int
     started_at: datetime
+
+
+class PrestigeResponse(BaseModel):
+    """Response for POST /api/v1/game/prestige."""
+
+    ok: bool
+    new_prestige_count: int
+    production_multiplier: float
+    surviving_upgrades: list[str]
