@@ -39,17 +39,17 @@ Tasks are sequential — do not start Task N+1 until Task N is `done`.
 **Depends on:** —
 
 #### Definition of Done
-- [ ] FastAPI app uruchamia się lokalnie (`uvicorn app.main:app --reload`) z katalogu `backend/`
-- [ ] Połączenie z PostgreSQL działa i jest konfigurowane przez `DATABASE_URL` w `.env`
-- [ ] Alembic skonfigurowany, `alembic upgrade head` przechodzi bez błędów
-- [ ] `.env.example` zawiera wszystkie wymagane zmienne: `DATABASE_URL`, `SNAPSHOT_SECRET`, `TEST_MODE`
-- [ ] `TEST_MODE` jest wczytywany przez `core/config.py` (Pydantic Settings)
-- [ ] `backend/pyproject.toml` z zależnościami i grupą `[dev]`
-- [ ] Struktura folderów zgodna z dokumentacją sekcja 5 (`backend/`, `frontend/` na poziomie root)
-- [ ] Podstawowy health-check endpoint `GET /health` zwraca `{"status": "ok"}`
-- [ ] Frontend: `frontend/` zainicjalizowany przez `npm create vite@latest` (Svelte 5 + JS)
-- [ ] Frontend: `npm run dev` uruchamia Vite na `:5173`, proxy `/api/*` → `http://localhost:8000`
-- [ ] Testy: pytest skonfigurowany, przynajmniej jeden test smoke przechodzi
+- [x] FastAPI app uruchamia się lokalnie (`uvicorn app.main:app --reload`) z katalogu `backend/`
+- [x] Połączenie z PostgreSQL działa i jest konfigurowane przez `DATABASE_URL` w `.env`
+- [x] Alembic skonfigurowany, `alembic upgrade head` przechodzi bez błędów
+- [x] `.env.example` zawiera wszystkie wymagane zmienne: `DATABASE_URL`, `SNAPSHOT_SECRET`, `TEST_MODE`
+- [x] `TEST_MODE` jest wczytywany przez `core/config.py` (Pydantic Settings)
+- [x] `backend/pyproject.toml` z zależnościami i grupą `[dev]`
+- [x] Struktura folderów zgodna z dokumentacją sekcja 5 (`backend/`, `frontend/` na poziomie root)
+- [x] Podstawowy health-check endpoint `GET /health` zwraca `{"status": "ok"}`
+- [x] Frontend: `frontend/` zainicjalizowany przez `npm create vite@latest` (Svelte 5 + JS)
+- [x] Frontend: `npm run dev` uruchamia Vite na `:5173`, proxy `/api/*` → `http://localhost:8000`
+- [x] Testy: pytest skonfigurowany, przynajmniej jeden test smoke przechodzi
 
 ---
 
@@ -93,14 +93,14 @@ Tasks are sequential — do not start Task N+1 until Task N is `done`.
 **Depends on:** Task 01
 
 #### Definition of Done
-- [ ] Modele SQLAlchemy: `player_state`, `wallet`, `player_unit`, `player_upgrade`, `event_log`
-- [ ] Modele konfiguracyjne (read-only): `unit_definition`, `upgrade_definition`, `balance_config`, `balance_test_run`
-- [ ] Migracja Alembic tworząca wszystkie tabele — `alembic upgrade head` przechodzi czysto
-- [ ] Seed skrypt wypełniający `unit_definition` i `upgrade_definition` danymi startowymi (reaktory t1, podstawowe upgrade'y offline)
-- [ ] Repozytoria (`db/repositories/`) z podstawowym CRUD dla każdego modelu
-- [ ] Pydantic schemas (`schemas/`) odpowiadające modelom
-- [ ] Testy jednostkowe repozytoriów (na testowej bazie danych, bez mocków)
-- [ ] Wszystkie pola zgodne ze specyfikacją z `general_documentation.md` sekcja 2
+- [x] Modele SQLAlchemy: `player_state`, `wallet`, `player_unit`, `player_upgrade`, `event_log`
+- [x] Modele konfiguracyjne (read-only): `unit_definition`, `upgrade_definition`, `balance_config`, `balance_test_run`
+- [x] Migracja Alembic tworząca wszystkie tabele — `alembic upgrade head` przechodzi czysto
+- [x] Seed skrypt wypełniający `unit_definition` i `upgrade_definition` danymi startowymi (reaktory t1, podstawowe upgrade'y offline)
+- [x] Repozytoria (`db/repositories/`) z podstawowym CRUD dla każdego modelu
+- [x] Pydantic schemas (`schemas/`) odpowiadające modelom
+- [x] Testy jednostkowe repozytoriów (na testowej bazie danych, bez mocków)
+- [x] Wszystkie pola zgodne ze specyfikacją z `general_documentation.md` sekcja 2
 
 ---
 
@@ -140,17 +140,17 @@ Tasks are sequential — do not start Task N+1 until Task N is `done`.
 **Depends on:** Task 02
 
 #### Definition of Done
-- [ ] `game_loop_service.py` implementuje pełną sekwencję: load → delta → production → upkeep → apply → sign → return
-- [ ] Delta time: rozróżnienie online vs offline, zastosowanie `offline_efficiency` i `offline_cap_seconds`
-- [ ] Startowe wartości: `offline_efficiency = 0.20`, `offline_cap = 4h`
-- [ ] Produkcja równoległa dla wszystkich aktywnych jednostek
-- [ ] Produkcja łańcuchowa dla jednostek wyższego tieru
-- [ ] Mnożniki z upgrade'ów i prestiżu stosowane poprawnie
-- [ ] Upkeep `energy_drink` odejmowany deterministycznie; jeśli brak — automatyzacja wyłączana deterministycznie
-- [ ] `snapshot_sign_service.py`: HMAC podpisywanie i weryfikacja stanu
-- [ ] Weryfikacja podpisu przy każdym load state; błąd podpisu → wyjątek z logiem do `event_log`
-- [ ] Testy jednostkowe: delta online, delta offline z cappingiem, produkcja z mnożnikami, upkeep niedobór
-- [ ] Testy balansu: brak deadlocku ekonomii przy domyślnych parametrach startowych
+- [x] `game_loop_service.py` implementuje pełną sekwencję: load → delta → production → upkeep → apply → sign → return
+- [x] Delta time: rozróżnienie online vs offline, zastosowanie `offline_efficiency` i `offline_cap_seconds`
+- [x] Startowe wartości: `offline_efficiency = 0.20`, `offline_cap = 4h`
+- [x] Produkcja równoległa dla wszystkich aktywnych jednostek
+- [x] Produkcja łańcuchowa dla jednostek wyższego tieru
+- [x] Mnożniki z upgrade'ów i prestiżu stosowane poprawnie
+- [x] Upkeep `energy_drink` odejmowany deterministycznie; jeśli brak — automatyzacja wyłączana deterministycznie
+- [x] `snapshot_sign_service.py`: HMAC podpisywanie i weryfikacja stanu
+- [x] Weryfikacja podpisu przy każdym load state; błąd podpisu → wyjątek z logiem do `event_log`
+- [x] Testy jednostkowe: delta online, delta offline z cappingiem, produkcja z mnożnikami, upkeep niedobór
+- [x] Testy balansu: brak deadlocku ekonomii przy domyślnych parametrach startowych
 
 ---
 
@@ -231,19 +231,19 @@ Tasks are sequential — do not start Task N+1 until Task N is `done`.
 
 ### Task 05 - Endpointy MVP
 
-**Status:** `not started`
+**Status:** `done`
 **Depends on:** Task 04
 
 #### Definition of Done
-- [ ] `POST /api/v1/game/start` — tworzy gracza jeśli żaden nie istnieje, w przeciwnym razie zwraca istniejącego; zwraca `player_id`, `state_version`, `started_at`
-- [ ] `GET /api/v1/game/state` — pełny snapshot po przeliczeniu delta, wywołuje `game_loop_service`; wymaga nagłówka `X-Player-ID`
-- [ ] `POST /api/v1/economy/buy-unit` — zakup jednostki, zwraca `new_amount_owned` + `wallet_after`
-- [ ] `POST /api/v1/economy/buy-upgrade` — zakup ulepszenia, zwraca `upgrade_level` + `applied_effect`
-- [ ] `POST /api/v1/time/claim-offline` — symulacja offline, zwraca `simulated_seconds`, `gains`, `cap_applied`
-- [ ] `deps.py`: dep `get_current_player` waliduje nagłówek `X-Player-ID` i pobiera gracza z bazy; brak nagłówka → `400`, nieznany UUID → `404`
-- [ ] Wszystkie odpowiedzi zgodne ze schematami z `general_documentation.md` sekcja 3.1
-- [ ] Routery pogrupowane wg modułów (`game.py`, `economy.py`, `time.py`)
-- [ ] Testy integracyjne dla każdego endpointu (rzeczywista baza, bez mocków)
+- [x] `POST /api/v1/game/start` — tworzy gracza jeśli żaden nie istnieje, w przeciwnym razie zwraca istniejącego; zwraca `player_id`, `state_version`, `started_at`
+- [x] `GET /api/v1/game/state` — pełny snapshot po przeliczeniu delta, wywołuje `game_loop_service`; wymaga nagłówka `X-Player-ID`
+- [x] `POST /api/v1/economy/buy-unit` — zakup jednostki, zwraca `new_amount_owned` + `wallet_after`
+- [x] `POST /api/v1/economy/buy-upgrade` — zakup ulepszenia, zwraca `upgrade_level` + `applied_effect`
+- [x] `POST /api/v1/time/claim-offline` — symulacja offline, zwraca `simulated_seconds`, `gains`, `cap_applied`
+- [x] `deps.py`: dep `get_current_player` waliduje nagłówek `X-Player-ID` i pobiera gracza z bazy; brak nagłówka → `400`, nieznany UUID → `404`
+- [x] Wszystkie odpowiedzi zgodne ze schematami z `general_documentation.md` sekcja 3.1
+- [x] Routery pogrupowane wg modułów (`game.py`, `economy.py`, `time.py`)
+- [x] Testy integracyjne dla każdego endpointu (rzeczywista baza, bez mocków)
 
 ---
 
@@ -279,22 +279,22 @@ Tasks are sequential — do not start Task N+1 until Task N is `done`.
 
 ### Task 06 - Test/Admin endpoints (TEST_MODE)
 
-**Status:** `not started`
+**Status:** `done`
 **Depends on:** Task 05
 
 #### Definition of Done
-- [ ] `POST /api/v1/test/simulate-time` — symuluje upływ czasu o N sekund
-- [ ] `POST /api/v1/test/correct-state` — patchuje wallet i/lub units gracza
-- [ ] Twarda blokada w `api/deps.py`: gdy `TEST_MODE=false` endpointy zwracają `404` (nie `403`)
-- [ ] Test: przy `TEST_MODE=false` wywołanie endpointów debug zwraca `404`
-- [ ] Test: przy `TEST_MODE=true` `simulate-time` poprawnie modyfikuje stan i `state_version`
-- [ ] Test: przy `TEST_MODE=true` `correct-state` patchuje tylko podane pola
-- [ ] **Docker:** `Dockerfile` dla backendu (multi-stage: builder + runtime, Python 3.12-slim)
-- [ ] **Docker:** `docker-compose.yml` w root projektu z serwisami: `db` (postgres:16-alpine), `backend` (FastAPI + uvicorn), opcjonalnie `frontend` (Vite dev lub pre-built)
-- [ ] **Docker:** `backend/.env.example` zaktualizowane o `DATABASE_URL` pasujące do service name z compose (`postgresql+asyncpg://user:pass@db:5432/uran`)
-- [ ] **Docker:** `docker compose up` odpala całą aplikację bez żadnej konfiguracji lokalnej (poza skopiowaniem `.env.example` → `.env`)
-- [ ] **Docker:** `alembic upgrade head` + seed wywoływane automatycznie przez entrypoint przy starcie backendu
-- [ ] **Docker:** `pytest` przechodzi zarówno lokalnie jak i wewnątrz kontenera (`docker compose exec backend pytest`)
+- [x] `POST /api/v1/test/simulate-time` — symuluje upływ czasu o N sekund
+- [x] `POST /api/v1/test/correct-state` — patchuje wallet i/lub units gracza
+- [x] Twarda blokada w `api/deps.py`: gdy `TEST_MODE=false` endpointy zwracają `404` (nie `403`)
+- [x] Test: przy `TEST_MODE=false` wywołanie endpointów debug zwraca `404`
+- [x] Test: przy `TEST_MODE=true` `simulate-time` poprawnie modyfikuje stan i `state_version`
+- [x] Test: przy `TEST_MODE=true` `correct-state` patchuje tylko podane pola
+- [x] **Docker:** `Dockerfile` dla backendu (multi-stage: builder + runtime, Python 3.12-slim)
+- [x] **Docker:** `docker-compose.yml` w root projektu z serwisami: `db` (postgres:16-alpine), `backend` (FastAPI + uvicorn), opcjonalnie `frontend` (Vite dev lub pre-built)
+- [x] **Docker:** `backend/.env.example` zaktualizowane o `DATABASE_URL` pasujące do service name z compose (`postgresql+asyncpg://user:pass@db:5432/uran`)
+- [x] **Docker:** `docker compose up` odpala całą aplikację bez żadnej konfiguracji lokalnej (poza skopiowaniem `.env.example` → `.env`)
+- [x] **Docker:** `alembic upgrade head` + seed wywoływane automatycznie przez entrypoint przy starcie backendu
+- [x] **Docker:** `pytest` przechodzi zarówno lokalnie jak i wewnątrz kontenera (`docker compose exec backend pytest`)
 
 ---
 
