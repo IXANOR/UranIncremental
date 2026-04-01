@@ -27,7 +27,7 @@ _UNIT_DATA: list[dict] = [  # type: ignore[type-arg]
         cost_growth_type="linear_early_exp_late",
         cost_growth_factor=Decimal("1.15"),
         production_resource="energy_drink",
-        production_rate_per_sec=Decimal("0.1"),
+        production_rate_per_sec=Decimal("0.3"),
         unlocked_by=None,
     ),
     dict(
@@ -39,7 +39,7 @@ _UNIT_DATA: list[dict] = [  # type: ignore[type-arg]
         cost_growth_type="linear_early_exp_late",
         cost_growth_factor=Decimal("1.15"),
         production_resource="energy_drink",
-        production_rate_per_sec=Decimal("0.5"),
+        production_rate_per_sec=Decimal("1.5"),
         unlocked_by=None,
     ),
     dict(
@@ -51,7 +51,7 @@ _UNIT_DATA: list[dict] = [  # type: ignore[type-arg]
         cost_growth_type="linear_early_exp_late",
         cost_growth_factor=Decimal("1.15"),
         production_resource="energy_drink",
-        production_rate_per_sec=Decimal("4.0"),
+        production_rate_per_sec=Decimal("12.0"),
         unlocked_by=None,
     ),
     dict(
@@ -63,7 +63,7 @@ _UNIT_DATA: list[dict] = [  # type: ignore[type-arg]
         cost_growth_type="linear_early_exp_late",
         cost_growth_factor=Decimal("1.15"),
         production_resource="energy_drink",
-        production_rate_per_sec=Decimal("10.0"),
+        production_rate_per_sec=Decimal("30.0"),
         unlocked_by=None,
     ),
     dict(
@@ -75,7 +75,7 @@ _UNIT_DATA: list[dict] = [  # type: ignore[type-arg]
         cost_growth_type="linear_early_exp_late",
         cost_growth_factor=Decimal("1.15"),
         production_resource="energy_drink",
-        production_rate_per_sec=Decimal("40.0"),
+        production_rate_per_sec=Decimal("120.0"),
         unlocked_by=None,
     ),
     # --- Tier 2: produce u238, cost energy_drink ---
@@ -84,11 +84,11 @@ _UNIT_DATA: list[dict] = [  # type: ignore[type-arg]
         name="Wirówka Izotopowa",
         tier=2,
         base_cost_currency="energy_drink",
-        base_cost_amount=Decimal("1000000"),
+        base_cost_amount=Decimal("3000000"),
         cost_growth_type="linear_early_exp_late",
         cost_growth_factor=Decimal("1.15"),
         production_resource="u238",
-        production_rate_per_sec=Decimal("0.001"),
+        production_rate_per_sec=Decimal("0.003"),
         unlocked_by=None,
     ),
     dict(
@@ -96,11 +96,11 @@ _UNIT_DATA: list[dict] = [  # type: ignore[type-arg]
         name="Zakład Wzbogacania",
         tier=2,
         base_cost_currency="energy_drink",
-        base_cost_amount=Decimal("10000000"),
+        base_cost_amount=Decimal("30000000"),
         cost_growth_type="linear_early_exp_late",
         cost_growth_factor=Decimal("1.15"),
         production_resource="u238",
-        production_rate_per_sec=Decimal("0.005"),
+        production_rate_per_sec=Decimal("0.015"),
         unlocked_by=None,
     ),
 ]
@@ -188,21 +188,34 @@ _UPGRADE_DATA: list[dict] = [  # type: ignore[type-arg]
 
 
 async def seed(session: AsyncSession) -> None:
-    """Insert all static game config rows if they do not already exist.
+    """Upsert all static game config rows (insert or update in-place).
 
-    Idempotent — safe to run multiple times.
+    Idempotent — safe to run multiple times; existing rows are updated to
+    reflect current balance values (production rates, costs, etc.).
 
     Args:
         session: Active async database session (caller commits).
     """
-    existing_units = set((await session.execute(select(UnitDefinition.id))).scalars().all())
+    existing_units = {
+        u.id: u for u in (await session.execute(select(UnitDefinition))).scalars().all()
+    }
     for data in _UNIT_DATA:
-        if data["id"] not in existing_units:
+        if data["id"] in existing_units:
+            obj = existing_units[data["id"]]
+            for k, v in data.items():
+                setattr(obj, k, v)
+        else:
             session.add(UnitDefinition(**data))
 
-    existing_upgrades = set((await session.execute(select(UpgradeDefinition.id))).scalars().all())
+    existing_upgrades = {
+        u.id: u for u in (await session.execute(select(UpgradeDefinition))).scalars().all()
+    }
     for data in _UPGRADE_DATA:
-        if data["id"] not in existing_upgrades:
+        if data["id"] in existing_upgrades:
+            obj = existing_upgrades[data["id"]]
+            for k, v in data.items():
+                setattr(obj, k, v)
+        else:
             session.add(UpgradeDefinition(**data))
 
     await session.flush()

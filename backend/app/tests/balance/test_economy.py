@@ -50,10 +50,10 @@ async def test_single_barrel_produces_positive_output(db_session: AsyncSession) 
         assert p is not None
         result = await tick(db_session, p)
 
-    # 1 barrel × 0.1 ED/s × 60s = 6 ED; must be > 0 with no multiplier overhead
+    # 1 barrel × 0.3 ED/s × 60s = 18 ED; must be > 0 with no multiplier overhead
     gains = result.gains.get("energy_drink", Decimal("0"))
     assert gains > Decimal("0"), "Single barrel must produce positive output"
-    assert gains == pytest.approx(Decimal("6"), rel=Decimal("0.01"))
+    assert gains == pytest.approx(Decimal("18"), rel=Decimal("0.01"))
 
 
 @pytest.mark.asyncio

@@ -141,9 +141,9 @@ async def test_tick_production_with_prestige_multiplier(db_session: AsyncSession
         assert p is not None
         result = await tick(db_session, p)
 
-    # 1 barrel × 0.1 ED/s × 100s × 1.15^2 ≈ 13.225 ED gained
+    # 1 barrel × 0.3 ED/s × 100s × 1.15^2 ≈ 39.675 ED gained
     gains = result.gains.get("energy_drink", Decimal("0"))
-    assert gains > Decimal("13") and gains < Decimal("14")
+    assert gains > Decimal("39") and gains < Decimal("41")
 
 
 @pytest.mark.asyncio

@@ -19,7 +19,7 @@ async def test_centrifuge_reaches_prestige_threshold_in_reasonable_time(
 ) -> None:
     """One centrifuge accumulates >= 1 u238 after 1100 simulated seconds.
 
-    centrifuge_t2 produces 0.001 u238/s → 1100s × 0.001 = 1.1 u238 >= threshold.
+    centrifuge_t2 produces 0.003 u238/s → 1100s × 0.003 = 3.3 u238 >= threshold.
     This verifies the production chain to first prestige is viable.
     """
     from datetime import UTC, datetime, timedelta
