@@ -269,10 +269,10 @@ async def test_prestige_reapplies_surviving_offline_efficiency_upgrade(
 
 
 @pytest.mark.asyncio
-async def test_prestige_production_multiplier_is_1_15_per_prestige(
+async def test_prestige_production_multiplier_is_1_20_per_prestige(
     db_session: AsyncSession,
 ) -> None:
-    """prestige_count=1 gives 1.15× production; prestige_count=2 gives 1.15²×."""
+    """prestige_count=1 gives 1.20× production; prestige_count=2 gives 1.20²×."""
     async with db_session.begin():
         await seed(db_session)
         player, _ = await _make_player_with_u238(db_session, Decimal("10"))

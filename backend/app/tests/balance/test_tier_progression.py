@@ -96,20 +96,30 @@ async def test_t2_centrifuge_not_reachable_under_4_minutes_max_t1(
 
 
 @pytest.mark.asyncio
-async def test_all_units_cost_energy_drink(db_session: AsyncSession) -> None:
-    """Every unit definition uses energy_drink as its purchase currency.
+async def test_tier1_and_tier2_units_cost_energy_drink(db_session: AsyncSession) -> None:
+    """Tier-1 and tier-2 units must cost energy_drink, preserving its relevance.
 
-    This guarantees that energy_drink remains a progression bottleneck at all
-    tiers and never becomes irrelevant in late game.
+    Tier-3+ units may use isotope currencies (u238/u235/u233) as part of the
+    resource chain; energy_drink stays relevant via automation upkeep and
+    serving as the sole bottleneck for reaching T2.
     """
     async with db_session.begin():
         await seed(db_session)
         all_units = await UnitDefinitionRepository.get_all(db_session)
 
-    non_ed_units = [u for u in all_units if u.base_cost_currency != "energy_drink"]
-    assert non_ed_units == [], (
-        f"Units with non-ED cost currency found (breaks late-game relevance): "
-        f"{[u.id for u in non_ed_units]}"
+    non_ed_early = [u for u in all_units if u.tier <= 2 and u.base_cost_currency != "energy_drink"]
+    assert non_ed_early == [], (
+        f"T1/T2 units with non-ED cost currency found: {[u.id for u in non_ed_early]}"
+    )
+
+    # T3+ units use the isotope resource chain — verify each uses the expected currency
+    chain_map = {3: "u238", 4: "u235", 5: "u233"}
+    wrong_chain = [
+        u for u in all_units if u.tier in chain_map and u.base_cost_currency != chain_map[u.tier]
+    ]
+    assert wrong_chain == [], (
+        f"T3+ units with unexpected cost currency: "
+        f"{[(u.id, u.tier, u.base_cost_currency) for u in wrong_chain]}"
     )
 
 

@@ -127,13 +127,13 @@ async def test_tick_production_adds_currency(db_session: AsyncSession) -> None:
 
 @pytest.mark.asyncio
 async def test_tick_production_with_prestige_multiplier(db_session: AsyncSession) -> None:
-    """Production should scale by 1.15^prestige_count."""
+    """Production should scale by 1.20^prestige_count."""
     async with db_session.begin():
         await seed(db_session)
         player = await PlayerStateRepository.create(db_session)
         player.last_tick_at = datetime.now(UTC) - timedelta(seconds=100)
         player.last_online_at = datetime.now(UTC)
-        player.prestige_count = 2  # multiplier = 1.15^2 ≈ 1.3225
+        player.prestige_count = 2  # multiplier = 1.20^2 = 1.44
         await PlayerUnitRepository.upsert(db_session, player.id, "barrel", amount_owned=1)
 
     async with db_session.begin():
@@ -141,9 +141,9 @@ async def test_tick_production_with_prestige_multiplier(db_session: AsyncSession
         assert p is not None
         result = await tick(db_session, p)
 
-    # 1 barrel × 0.3 ED/s × 100s × 1.15^2 ≈ 39.675 ED gained
+    # 1 barrel × 0.3 ED/s × 100s × 1.20^2 = 43.2 ED gained
     gains = result.gains.get("energy_drink", Decimal("0"))
-    assert gains > Decimal("39") and gains < Decimal("41")
+    assert gains > Decimal("42") and gains < Decimal("45")
 
 
 @pytest.mark.asyncio

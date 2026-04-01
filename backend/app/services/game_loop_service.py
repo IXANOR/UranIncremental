@@ -161,7 +161,7 @@ async def tick(
     gains: dict[str, Decimal] = defaultdict(Decimal)
 
     if effective_delta > 0 and units:
-        prestige_mult = Decimal("1.15") ** player.prestige_count
+        prestige_mult = Decimal("1.20") ** player.prestige_count
         delta_dec = Decimal(str(effective_delta))
 
         unit_defs = {ud.id: ud for ud in await UnitDefinitionRepository.get_all(session)}

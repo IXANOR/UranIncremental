@@ -175,6 +175,6 @@ async def prestige_endpoint(
     return PrestigeResponse(
         ok=True,
         new_prestige_count=result.new_prestige_count,
-        production_multiplier=float(Decimal("1.15") ** result.new_prestige_count),
+        production_multiplier=float(Decimal("1.20") ** result.new_prestige_count),
         surviving_upgrades=result.surviving_upgrade_ids,
     )

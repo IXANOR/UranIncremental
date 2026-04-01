@@ -111,7 +111,7 @@ async def test_seed_loads_unit_definitions(db_session: AsyncSession) -> None:
     ids = [u.id for u in units]
     assert "barrel" in ids
     assert "centrifuge_t2" in ids
-    assert len(units) == 7
+    assert len(units) == 14
 
 
 @pytest.mark.asyncio
@@ -124,7 +124,7 @@ async def test_seed_is_idempotent(db_session: AsyncSession) -> None:
 
     async with db_session.begin():
         units = await UnitDefinitionRepository.get_all(db_session)
-    assert len(units) == 7
+    assert len(units) == 14
 
 
 @pytest.mark.asyncio
@@ -165,7 +165,7 @@ async def test_seed_loads_upgrade_definitions(db_session: AsyncSession) -> None:
     ids = [u.id for u in upgrades]
     assert "offline_module_mk1" in ids
     assert "offline_cap_mk2" in ids
-    assert len(upgrades) == 6
+    assert len(upgrades) == 30
 
 
 @pytest.mark.asyncio

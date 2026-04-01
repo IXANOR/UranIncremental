@@ -4,9 +4,11 @@ All public functions are atomic — they call ``session.flush()`` at the end so
 the caller's transaction can be committed (or rolled back) as a unit.
 
 Supported upgrade effect types:
-- ``prod_mult``:      multiply ``PlayerUnit.effective_multiplier`` for ``target_unit_id``
-- ``offline_eff_up``: increase ``PlayerState.offline_efficiency``
-- ``offline_cap_up``: increase ``PlayerState.offline_cap_seconds``
+- ``prod_mult``:         multiply ``PlayerUnit.effective_multiplier`` for ``target_unit_id``
+- ``offline_eff_up``:   increase ``PlayerState.offline_efficiency``
+- ``offline_cap_up``:   increase ``PlayerState.offline_cap_seconds``
+- ``global_prod_mult``: multiply ``PlayerUnit.effective_multiplier`` for ALL owned units
+- ``starting_energy_up``: add ``effect_value`` energy_drink directly to wallet
 """
 
 from dataclasses import dataclass
@@ -234,3 +236,13 @@ async def _apply_upgrade_effect(
 
     elif effect == "offline_cap_up":
         player.offline_cap_seconds = int(player.offline_cap_seconds + int(value))
+
+    elif effect == "global_prod_mult":
+        all_units = await PlayerUnitRepository.get_by_player(session, player.id)
+        for unit_row in all_units:
+            unit_row.effective_multiplier = unit_row.effective_multiplier * value
+
+    elif effect == "starting_energy_up":
+        wallet = await WalletRepository.get_by_player(session, player.id)
+        if wallet is not None:
+            wallet.energy_drink += value

@@ -69,7 +69,7 @@ async def test_prestige_production_boost_measurable(db_session: AsyncSession) ->
         base_result = await tick(db_session, p)
     base_gains = base_result.gains.get("energy_drink", Decimal("0"))
 
-    # With prestige_count=1 (1.15× multiplier)
+    # With prestige_count=1 (1.20× multiplier)
     async with db_session.begin():
         await seed(db_session)
         player_p1 = await PlayerStateRepository.create(db_session)
@@ -88,9 +88,9 @@ async def test_prestige_production_boost_measurable(db_session: AsyncSession) ->
     p1_gains = p1_result.gains.get("energy_drink", Decimal("0"))
 
     assert p1_gains > base_gains, f"Prestige boost not applied: base={base_gains}, p1={p1_gains}"
-    # Verify the multiplier is approximately 1.15
+    # Verify the multiplier is approximately 1.20
     ratio = p1_gains / base_gains
-    assert Decimal("1.14") <= ratio <= Decimal("1.16"), f"Unexpected ratio: {ratio}"
+    assert Decimal("1.19") <= ratio <= Decimal("1.21"), f"Unexpected ratio: {ratio}"
 
 
 @pytest.mark.asyncio
