@@ -1,7 +1,7 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import { startGame, fetchState, claimOffline, doPrestige } from './lib/api/client.js';
-  import { gameState, error, offlineGains, canPrestige, player, testMode } from './lib/stores/game.js';
+  import { gameState, error, offlineGains, canPrestige, player, testMode, prestigeNextRequirement } from './lib/stores/game.js';
   import WalletHUD from './lib/components/WalletHUD.svelte';
   import UnitList from './lib/components/UnitList.svelte';
   import UpgradeList from './lib/components/UpgradeList.svelte';
@@ -107,7 +107,7 @@
   <div class="prestige-info">
     <span class="pi-label">✦ Prestige</span>
     <span class="pi-sep">—</span>
-    <span class="pi-item">wymaga: <strong>1 U-238</strong></span>
+    <span class="pi-item">wymaga: <strong>{$prestigeNextRequirement} U-238</strong></span>
     <span class="pi-sep">·</span>
     <span class="pi-item">reset: waluta, jednostki i nieutrwalone ulepszenia</span>
     <span class="pi-sep">·</span>

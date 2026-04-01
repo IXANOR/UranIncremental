@@ -24,7 +24,7 @@ from app.schemas.game import (
     WalletSchema,
 )
 from app.services.game_loop_service import SnapshotSignatureError, tick
-from app.services.prestige_service import PrestigeNotAvailableError
+from app.services.prestige_service import PrestigeNotAvailableError, prestige_requirement
 from app.services.prestige_service import prestige as run_prestige
 from app.services.pricing_service import compute_unit_cost
 
@@ -139,6 +139,7 @@ async def get_state(
         units=units,
         upgrades=upgrades,
         test_mode=settings.test_mode,
+        prestige_next_requirement=prestige_requirement(result.player.prestige_count),
     )
 
 

@@ -71,6 +71,7 @@ class GameStateResponse(BaseModel):
     units: list[UnitStateSchema]
     upgrades: list[UpgradeStateSchema]
     test_mode: bool
+    prestige_next_requirement: Decimal
 
 
 class StartGameResponse(BaseModel):

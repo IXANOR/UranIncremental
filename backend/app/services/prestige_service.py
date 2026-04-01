@@ -19,8 +19,25 @@ from app.db.repositories.player_upgrade import PlayerUpgradeRepository
 from app.db.repositories.upgrade_definition import UpgradeDefinitionRepository
 from app.db.repositories.wallet import WalletRepository
 
-# Minimum u238 balance required to trigger prestige.
-PRESTIGE_U238_REQUIREMENT = Decimal("1")
+# Base u238 required for the very first prestige (prestige_count == 0).
+# Each subsequent prestige doubles the requirement: base * 2^prestige_count.
+PRESTIGE_U238_REQUIREMENT = Decimal("1")  # kept for backwards-compat imports
+
+
+def prestige_requirement(prestige_count: int) -> Decimal:
+    """Return the u238 required for the next prestige.
+
+    The requirement doubles with each completed prestige so the player must
+    accumulate progressively more u238 to keep resetting.
+
+    Args:
+        prestige_count: The player's *current* prestige count (before the reset).
+
+    Returns:
+        Decimal u238 threshold: ``1 * 2^prestige_count``.
+    """
+    return PRESTIGE_U238_REQUIREMENT * Decimal(2) ** prestige_count
+
 
 _DEFAULT_STARTING_ENERGY = Decimal("50")
 _DEFAULT_OFFLINE_EFFICIENCY = 0.20
@@ -72,9 +89,11 @@ async def prestige(session: AsyncSession, player: PlayerState) -> PrestigeResult
     wallet = await WalletRepository.get_by_player(session, player.id)
     assert wallet is not None, "Wallet missing — database integrity error"
 
-    if wallet.u238 < PRESTIGE_U238_REQUIREMENT:
+    required = prestige_requirement(player.prestige_count)
+    if wallet.u238 < required:
         raise PrestigeNotAvailableError(
-            f"Need {PRESTIGE_U238_REQUIREMENT} u238 to prestige, have {wallet.u238}"
+            f"Need {required} u238 to prestige (prestige #{player.prestige_count + 1}), "
+            f"have {wallet.u238}"
         )
 
     # --- Collect surviving upgrades before deletion -------------------------

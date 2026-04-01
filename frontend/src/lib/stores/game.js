@@ -9,10 +9,14 @@ export const units = derived(gameState, ($s) => $s?.units ?? []);
 export const upgrades = derived(gameState, ($s) => $s?.upgrades ?? []);
 export const player = derived(gameState, ($s) => $s?.player ?? null);
 
-/** true when u238 >= 1 (prestige condition) */
-export const canPrestige = derived(wallet, ($w) => {
+export const prestigeNextRequirement = derived(gameState, ($s) =>
+  $s?.prestige_next_requirement != null ? parseFloat($s.prestige_next_requirement) : 1
+);
+
+/** true when u238 >= prestige_next_requirement */
+export const canPrestige = derived([wallet, prestigeNextRequirement], ([$w, $req]) => {
   if (!$w) return false;
-  return parseFloat($w.u238) >= 1;
+  return parseFloat($w.u238) >= $req;
 });
 
 export const testMode = derived(gameState, ($s) => $s?.test_mode === true);

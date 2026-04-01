@@ -14,6 +14,7 @@ from app.services.prestige_service import (
     PRESTIGE_U238_REQUIREMENT,
     PrestigeNotAvailableError,
     prestige,
+    prestige_requirement,
 )
 
 
@@ -296,3 +297,42 @@ async def test_prestige_production_multiplier_is_1_15_per_prestige(
         r2 = await prestige(db_session, p2)
 
     assert r2.new_prestige_count == 2
+
+
+# ---------------------------------------------------------------------------
+# Scaling prestige requirement
+# ---------------------------------------------------------------------------
+
+
+def test_prestige_requirement_pure_scaling() -> None:
+    """prestige_requirement doubles for each prestige: 1, 2, 4, 8..."""
+    assert prestige_requirement(0) == Decimal("1")
+    assert prestige_requirement(1) == Decimal("2")
+    assert prestige_requirement(2) == Decimal("4")
+    assert prestige_requirement(3) == Decimal("8")
+
+
+@pytest.mark.asyncio
+async def test_second_prestige_requires_more_u238(db_session: AsyncSession) -> None:
+    """After first prestige (count=1) the requirement rises to 2 U-238."""
+    async with db_session.begin():
+        await seed(db_session)
+        player, _ = await _make_player_with_u238(db_session, Decimal("5"))
+
+    async with db_session.begin():
+        p = await PlayerStateRepository.get_by_id(db_session, player.id)
+        assert p is not None
+        r1 = await prestige(db_session, p)
+    assert r1.new_prestige_count == 1
+
+    # Give only 1 U-238 — below the new requirement of 2
+    async with db_session.begin():
+        w = await WalletRepository.get_by_player(db_session, player.id)
+        assert w is not None
+        w.u238 = Decimal("1")
+
+    async with db_session.begin():
+        p2 = await PlayerStateRepository.get_by_id(db_session, player.id)
+        assert p2 is not None
+        with pytest.raises(PrestigeNotAvailableError):
+            await prestige(db_session, p2)
