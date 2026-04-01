@@ -104,6 +104,18 @@
 
   <WalletHUD />
 
+  <div class="prestige-info">
+    <span class="pi-label">✦ Prestige</span>
+    <span class="pi-sep">—</span>
+    <span class="pi-item">wymaga: <strong>1 U-238</strong></span>
+    <span class="pi-sep">·</span>
+    <span class="pi-item">reset: waluta, jednostki i nieutrwalone ulepszenia</span>
+    <span class="pi-sep">·</span>
+    <span class="pi-item">nagroda: <strong>+15% produkcji na stałe</strong> (kumuluje się)</span>
+    <span class="pi-sep">·</span>
+    <span class="pi-item">zostają: ulepszenia oznaczone <em>↺ trwałe</em></span>
+  </div>
+
   <div class="actions">
     {#if offlinePending}
       <button class="btn-action offline" disabled={actionBusy} on:click={handleClaimOffline}>
@@ -199,6 +211,24 @@
     font-size: 1rem;
     line-height: 1;
   }
+
+  .prestige-info {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: baseline;
+    background: #0d0a00;
+    border: 1px solid #432;
+    border-radius: 4px;
+    padding: 6px 12px;
+    margin-bottom: 10px;
+    font-size: 0.78rem;
+    color: #876;
+  }
+  .pi-label { color: #a73; font-weight: bold; letter-spacing: 0.05em; }
+  .pi-sep { color: #432; }
+  .pi-item strong { color: #fa8; }
+  .pi-item em { color: #f90; font-style: normal; }
 
   .actions {
     display: flex;
