@@ -37,6 +37,10 @@
     const map = { energy_drink: 'ED', u238: 'U-238', u235: 'U-235', u233: 'U-233', meta_isotopes: 'META' };
     return map[res] ?? res;
   }
+
+  function fleetRate(unit) {
+    return parseFloat(unit.amount_owned) * parseFloat(unit.production_rate_per_sec) * parseFloat(unit.effective_multiplier);
+  }
 </script>
 
 <section class="panel">
@@ -46,7 +50,9 @@
       <div class="info">
         <span class="name">{unit.name}</span>
         <span class="owned">× {unit.amount_owned}</span>
-        <span class="rate">+{fmt(unit.production_rate_per_sec)} {resourceLabel(unit.production_resource)}/s</span>
+        <span class="rate" title="{fmt(unit.production_rate_per_sec)} {resourceLabel(unit.production_resource)}/s na sztukę">
+          +{fmt(fleetRate(unit))} {resourceLabel(unit.production_resource)}/s
+        </span>
       </div>
       <div class="buy-col">
         <span class="cost" class:cant={!canAfford(unit)}>

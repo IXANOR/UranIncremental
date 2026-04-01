@@ -1,5 +1,5 @@
 <script>
-  import { wallet, player } from '../stores/game.js';
+  import { wallet, player, units } from '../stores/game.js';
 
   function fmt(val) {
     const n = parseFloat(val ?? 0);
@@ -7,6 +7,18 @@
     if (n >= 1_000) return (n / 1_000).toFixed(2) + 'k';
     return n.toFixed(2);
   }
+
+  const RESOURCE_LABEL = { energy_drink: 'ED', u238: 'U-238', u235: 'U-235', u233: 'U-233', meta_isotopes: 'META' };
+  const RESOURCE_ICON  = { energy_drink: '⚡', u238: '☢', u235: '⚛', u233: '🔬', meta_isotopes: '✦' };
+  const RESOURCE_CLASS = { energy_drink: 'ed', u238: 'u238', u235: 'u235', u233: 'u233', meta_isotopes: 'meta' };
+
+  $: production = $units.reduce((acc, u) => {
+    const rate = parseFloat(u.amount_owned) * parseFloat(u.production_rate_per_sec) * parseFloat(u.effective_multiplier);
+    acc[u.production_resource] = (acc[u.production_resource] ?? 0) + rate;
+    return acc;
+  }, {});
+
+  $: productionEntries = Object.entries(production).filter(([, v]) => v > 0);
 </script>
 
 <section class="hud">
@@ -24,6 +36,15 @@
       <span class="currency u233">🔬 {fmt($wallet.u233)} U-233</span>
       <span class="currency meta">✦ {fmt($wallet.meta_isotopes)} META</span>
     </div>
+    {#if productionEntries.length > 0}
+      <div class="production-row">
+        {#each productionEntries as [res, rate]}
+          <span class="prod-item {RESOURCE_CLASS[res] ?? ''}">
+            {RESOURCE_ICON[res] ?? ''} +{fmt(rate)} {RESOURCE_LABEL[res] ?? res}/s
+          </span>
+        {/each}
+      </div>
+    {/if}
   {:else}
     <p class="loading">Ładowanie stanu...</p>
   {/if}
@@ -67,4 +88,17 @@
   .u233 { color: #5df; }
   .meta { color: #f90; }
   .loading { color: #555; font-style: italic; }
+  .production-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid #1a2a1a;
+  }
+  .prod-item {
+    font-size: 0.8rem;
+    opacity: 0.85;
+    white-space: nowrap;
+  }
 </style>

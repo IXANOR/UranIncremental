@@ -139,7 +139,8 @@
     <footer>
       wersja stanu: {$player.version} &nbsp;|&nbsp;
       eff. offline: {($player.offline_efficiency * 100).toFixed(0)}% &nbsp;|&nbsp;
-      cap: {($player.offline_cap_seconds / 3600).toFixed(1)}h
+      cap: {($player.offline_cap_seconds / 3600).toFixed(1)}h &nbsp;|&nbsp;
+      mnożnik prestige: {(1.15 ** $player.prestige_count).toFixed(3)}×
     </footer>
   {/if}
 </main>
