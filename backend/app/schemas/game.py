@@ -57,6 +57,7 @@ class UpgradeStateSchema(BaseModel):
     cost_amount: Decimal
     effect_type: str
     effect_value: Decimal
+    target_unit_id: str | None
     is_repeatable: bool
     survives_prestige: bool
     purchased_level: int  # 0 = not purchased

@@ -125,6 +125,7 @@ async def get_state(
             cost_amount=ud.cost_amount,
             effect_type=ud.effect_type,
             effect_value=ud.effect_value,
+            target_unit_id=ud.target_unit_id,
             is_repeatable=ud.is_repeatable,
             survives_prestige=ud.survives_prestige,
             purchased_level=purchased_map.get(ud.id, 0),
