@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     database_url: str
     snapshot_secret: str
     test_mode: bool = False
+    anthropic_api_key: str = ""
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

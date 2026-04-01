@@ -2,7 +2,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import JSON, Boolean, DateTime, String
+from sqlalchemy import JSON, Boolean, DateTime, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -26,6 +26,23 @@ class BalanceConfig(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=False)
     json_blob: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     created_at: Mapped[datetime] = mapped_column(_TZ, default=_now)
+
+
+class BalanceProposal(Base):
+    """AI-generated balance proposal awaiting admin review.
+
+    Lifecycle: ``pending`` → ``approved`` / ``rejected`` → ``applied``.
+    Only ``approved`` proposals can be applied to the live game config.
+    """
+
+    __tablename__ = "balance_proposal"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    status: Mapped[str] = mapped_column(String(16), default="pending")
+    changes_json: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
+    rationale: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(_TZ, default=_now)
+    resolved_at: Mapped[datetime | None] = mapped_column(_TZ, nullable=True, default=None)
 
 
 class BalanceTestRun(Base):

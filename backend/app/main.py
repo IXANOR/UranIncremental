@@ -3,6 +3,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
+from app.api.routes.balance import router as balance_router
 from app.api.routes.economy import router as economy_router
 from app.api.routes.game import router as game_router
 from app.api.routes.health import router as health_router
@@ -16,6 +17,7 @@ app.include_router(game_router)
 app.include_router(economy_router)
 app.include_router(time_router)
 app.include_router(test_admin_router)
+app.include_router(balance_router)
 
 # Serve built frontend from frontend/dist/ when present (production mode)
 _frontend_dist = Path(__file__).parent.parent.parent / "frontend" / "dist"
