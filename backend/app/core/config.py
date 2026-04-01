@@ -7,13 +7,12 @@ class Settings(BaseSettings):
     Attributes:
         database_url: Async PostgreSQL connection string (asyncpg driver).
         snapshot_secret: HMAC key used to sign and verify player state snapshots.
-        test_mode: When True, debug/admin endpoints are enabled.
+        test_mode: When True, test/admin endpoints are enabled.
     """
 
     database_url: str
     snapshot_secret: str
     test_mode: bool = False
-    anthropic_api_key: str = ""
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

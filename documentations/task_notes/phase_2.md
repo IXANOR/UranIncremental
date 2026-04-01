@@ -36,39 +36,51 @@ Architecture must remain single-user-first but structurally ready for multi-user
 
 ## Tasks
 
-### Task 12 - AI Balance Proposals
+### Task 12 - Nowy Content: Jednostki T3-T5, Ulepszenia, Balans
 
-**Status:** `not started`
-**Depends on:** Task 09 (balance suite), Task 11 (frontend)
+**Status:** `done`
+**Depends on:** Task 11 (frontend)
 
 #### Definition of Done
-- [ ] Endpoint `POST /api/v1/balance/propose` przyjmuje payload z propozycją zmiany (unit rates, costs, upgrade values) i zapisuje ją jako rekord `BalanceProposal` ze statusem `pending`
-- [ ] Serwis AI (`balance_ai_service.py`) generuje propozycję przez wywołanie modelu LLM (Anthropic API) — prompt zawiera obecną konfigurację, wyniki testów balansu i prośbę o uzasadnienie
-- [ ] Pipeline zatwierdzania: `pending` → `tests_passed` (po uruchomieniu balance suite) → `admin_approved` → `active`
-- [ ] Endpoint `POST /api/v1/balance/approve/{proposal_id}` (wymaga `TEST_MODE=true` lub admin tokenu) przesuwa propozycję do `admin_approved`
-- [ ] Endpoint `POST /api/v1/balance/activate/{proposal_id}` aktywuje propozycję — nadpisuje wartości w `seed()` i wywołuje upsert
-- [ ] Balance suite uruchamiana automatycznie po przejściu do `tests_passed`; propozycja blokowana jeśli któryś test nie przejdzie
-- [ ] Konfiguracja balance readonly gdy `TEST_MODE=false`
-- [ ] Testy: unit dla logiki AI promptu + integration dla pipeline'u zatwierdzeń + balance regression
+- [x] Nowe jednostki T3-T5 dodane do `seed.py` z poprawnym łańcuchem zasobów (u238→u235→u233→meta)
+- [x] Jednostka pomostowa T1 (`uranium_refinery`) wypełniająca lukę między kopalnią a T2
+- [x] 24 nowe ulepszenia: Mk2/Mk3 dla T1, Mk1 dla T2, offline Mk3, globalne (`global_prod_mult`, `starting_energy_up`), T3-T5
+- [x] Nowe typy efektów ulepszeń zaimplementowane w `economy_service.py`
+- [x] Zmiany balansu: koszt `offline_module_mk1` 500→300 ED, mnożnik prestige 1.15→1.20
+- [x] UI ulepszeń przepisane: 3 zwijalne sekcje (🔧 Jednostki, 🌙 Offline, ⚡ Globalne), kupione szare na dole
+- [x] `target_unit_id` dodane do `UpgradeStateSchema` i `GET /game/state`
+- [x] Stara infrastruktura API balansowania (Anthropic API) usunięta
+- [x] 129 testów przechodzi
 
 ---
 
-### Task 13 - AI Content Generator (unit/upgrade flavor text)
-
-**Status:** `not started`
-**Depends on:** Task 12
-
-#### Definition of Done
-- [ ] Endpoint `POST /api/v1/content/generate` przyjmuje `entity_type` (`unit`|`upgrade`) i `entity_id`; zwraca wygenerowany opis w stylu humoru techno-magic (PL)
-- [ ] `content_service.py` buduje prompt z kontekstem gry (nazwa, tier, mechanika) i wywołuje Anthropic API
-- [ ] Wygenerowany tekst zapisywany jako pole `flavor_text` w `UnitDefinition` / `UpgradeDefinition` (nowa kolumna, nullable)
-- [ ] Frontend wyświetla `flavor_text` jako dodatkowy opis pod nazwą jednostki/ulepszenia (gdy istnieje)
-- [ ] Alembic migracja dodająca `flavor_text TEXT NULL` do obu tabel
-- [ ] Testy: unit dla promptu + integration dla endpointu + sprawdzenie że pole trafia do `GET /state`
+#### Post-task notes
+- **Date:** 2026-04-02
+- **Commit(s):** `82e2e46`, `461c396`
+- **Scope implemented:**
+  - 7 nowych jednostek: `uranium_refinery` (T1 bridge), `isotope_separator`, `quantum_centrifuge` (T3), `thorium_converter`, `breeder_reactor` (T4), `particle_accelerator`, `dimension_reactor` (T5)
+  - 24 nowe ulepszenia w kategoriach B/E/F/G/H
+  - Nowe typy efektów: `global_prod_mult` (mnoży effective_multiplier wszystkich posiadanych jednostek), `starting_energy_up` (natychmiastowy bonus ED)
+  - `UpgradeList.svelte` — 3 zwijalne sekcje z licznikami dostępnych/kupionych
+  - Balans C2 (offline_module_mk1 500→300) i C3 (prestige ×1.20 zamiast ×1.15)
+- **Architectural decisions:**
+  - T3-T5 jednostki kosztują izotopy (u238/u235/u233), nie ED — inwariant `energy_drink nie może stać się nieistotny` zachowany przez upkeep automatyzacji i wyłączność ED dla T1/T2
+  - Test balansu `test_all_units_cost_energy_drink` zastąpiony bardziej precyzyjnym `test_tier1_and_tier2_units_cost_energy_drink` + weryfikacja łańcucha T3+
+  - Infrastruktura balance_ai_service / balance route / BalanceProposal usunięta — zbędna bez kluczy Anthropic API; zatwierdzanie contentu odbywa się przez rozmowę z Claude w chatsie
+- **Risks / constraints:**
+  - `global_prod_mult` stosowany tylko do jednostek już posiadanych w momencie zakupu — nowe jednostki kupione po upgradzie nie otrzymują retroaktywnie mnożnika. Akceptowalne dla MVP.
+  - Łańcuch T3-T5 nie jest widoczny w UI (brak dedykowanego filtra tier) — do rozważenia w Phase 3
+- **Notes for next tasks:**
+  - Task 13 (minigame Klik Reaktora) nie zależy od contentu T3-T5
+  - Migracja `c3d4e5f6a7b8_add_balance_proposal_table.py` pozostawiona w historii Alembic (tabela `balance_proposal` istnieje w DB); nie wpływa na działanie aplikacji
+- **Test status:**
+  - Unit: ✅ 129 testów
+  - Integration: ✅
+  - Balance: ✅ (tier progression, prestige, economy)
 
 ---
 
-### Task 14 - Minigame: Klik Reaktora
+### Task 13 - Minigame: Klik Reaktora
 
 **Status:** `not started`
 **Depends on:** Task 11 (frontend)
@@ -83,10 +95,10 @@ Architecture must remain single-user-first but structurally ready for multi-user
 
 ---
 
-### Task 15 - Sezonowy Sink: Eksperyment Jądrowy
+### Task 14 - Sezonowy Sink: Eksperyment Jądrowy
 
 **Status:** `not started`
-**Depends on:** Task 13, Task 14
+**Depends on:** Task 13
 
 #### Definition of Done
 - [ ] Mechanizm "eksperymentu" — gracz może wydać pulę ED i U-238 na losowe wydarzenie z tabelą wyników (sukces/porażka/krytyczny sukces)
@@ -101,22 +113,14 @@ Architecture must remain single-user-first but structurally ready for multi-user
 
 ## Phase 2 Architecture Notes
 
-### AI Integration
+### Content i balans — workflow
 
-- Anthropic API klucz w `backend/.env` jako `ANTHROPIC_API_KEY`
-- Wywołania AI tylko w endpointach oznaczonych `TEST_MODE=true` lub przez pipeline zatwierdzania
-- Prompty wersjonowane w `app/services/ai_prompts/` jako osobne pliki `.txt` — ułatwia A/B testing
-- Timeout 30s na wywołanie LLM; fallback: zwróć błąd 503 bez crashowania gracza
-
-### Balance Pipeline
-
-Zgodnie z CLAUDE.md — rygorystyczny pipeline zatwierdzania:
-```
-AI proposal → pending → tests_passed → admin_approved → active
-```
-- Żadna propozycja nie trafia do `active` bez przejścia pełnej balance suite
-- Config balance readonly w produkcji (`TEST_MODE=false`)
-- `BalanceProposal` przechowuje diff (before/after) dla audytu
+Zamiast Anthropic API, nowe jednostki/ulepszenia/zmiany balansu są proponowane przez Claude Code w rozmowie z developerem.
+Pipeline zatwierdzania:
+1. Claude prezentuje propozycje (lista z opisami i wartościami)
+2. Developer odpowiada: ✅ zatwierdzone / ❌ odrzucone / modyfikacja
+3. Claude implementuje zatwierdzone zmiany bezpośrednio w `seed.py` i serwisach
+4. Testy (`pytest`) muszą przechodzić — balans traktowany jako release-blocking
 
 ### Minigame Design Constraints
 
