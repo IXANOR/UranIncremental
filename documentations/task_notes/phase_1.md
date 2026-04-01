@@ -248,16 +248,32 @@ Tasks are sequential — do not start Task N+1 until Task N is `done`.
 ---
 
 #### Post-task notes
-- **Date:**
-- **Commit(s):**
+- **Date:** 2026-04-01
+- **Commit(s):** TBD
 - **Scope implemented:**
+  - `app/api/deps.py` — `get_current_player` dependency: validates `X-Player-ID` header, parses UUID, fetches PlayerState; raises HTTP 400 (missing/invalid) or HTTP 404 (not found)
+  - `app/api/routes/game.py` — `POST /api/v1/game/start` (idempotent create-or-return), `GET /api/v1/game/state` (full tick + response)
+  - `app/api/routes/economy.py` — `POST /api/v1/economy/buy-unit`, `POST /api/v1/economy/buy-upgrade`
+  - `app/api/routes/time.py` — `POST /api/v1/time/claim-offline` (force_offline=True tick)
+  - `app/main.py` updated to include all four routers
+  - 19 integration tests covering success paths, auth errors, and domain errors for every endpoint
 - **Architectural decisions:**
+  - `get_db` yields `AsyncSessionLocal()` without an explicit transaction; autobegin fires on the first SQL op; route handlers call `await session.commit()` after the service call succeeds — if an exception propagates, `get_db`'s context manager closes the session and the implicit transaction is rolled back by the connection pool
+  - `expire_on_commit=False` (already set on `AsyncSessionLocal`) prevents "lazy-load after commit" errors in async context — ORM objects remain accessible after `session.commit()`
+  - FastAPI caches `Depends(get_db)` within a request, so `get_current_player` and the route handler share the same `AsyncSession` instance; this means the player loaded in the dep is already in the session's identity map when `tick()` runs
+  - Integration tests override `get_db` with a lambda yielding the test `db_session`; `session.commit()` inside the route commits the StaticPool in-memory SQLite connection, making data visible to subsequent calls in the same test
+  - `claim-offline` reads `player_id` from the `X-Player-ID` header via `get_current_player` (not from a request body); `ClaimOfflineRequest` schema is not used in the endpoint — kept in schemas for documentation completeness
 - **Risks / constraints:**
+  - `GET /state` response does not include `units` or `upgrades` lists — the existing `GameStateResponse` schema omits them; Task 11 (frontend) may require extending the schema
+  - `POST /start` uses `get_single_player` (single-user mode); in multi-user Phase 3, this endpoint will need session/auth rework
 - **Notes for next tasks:**
+  - Task 06: `deps.py` needs a `require_test_mode` dependency that checks `settings.test_mode` and raises HTTP 404 if false; add it alongside `get_current_player`
+  - Task 06: test/admin routers live under `/api/v1/test/`; add them to `main.py` only when `TEST_MODE=true` or block via the dep — prefer the dep approach for consistency
+  - Task 11 (frontend): `GET /state` may need to be extended with `units` and `upgrades` arrays; add to `GameStateResponse` at that point
 - **Test status:**
-  - Unit:
-  - Integration:
-  - Balance:
+  - Unit: 59 PASSED (all prior unit tests still green)
+  - Integration: 19 PASSED (new endpoint tests) + 1 PASSED (health) = 20 total
+  - Balance: 7 PASSED
 
 ---
 
