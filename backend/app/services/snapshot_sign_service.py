@@ -43,10 +43,7 @@ def _canonical_payload(
             "u233": str(wallet.u233),
             "meta_isotopes": str(wallet.meta_isotopes),
         },
-        "units": {
-            u.unit_id: u.amount_owned
-            for u in sorted(units, key=lambda x: x.unit_id)
-        },
+        "units": {u.unit_id: u.amount_owned for u in sorted(units, key=lambda x: x.unit_id)},
     }
     return json.dumps(payload, sort_keys=True).encode()
 

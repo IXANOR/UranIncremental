@@ -25,9 +25,7 @@ class UpgradeDefinitionRepository:
         return list(result.scalars().all())
 
     @staticmethod
-    async def get_by_id(
-        session: AsyncSession, upgrade_id: str
-    ) -> UpgradeDefinition | None:
+    async def get_by_id(session: AsyncSession, upgrade_id: str) -> UpgradeDefinition | None:
         """Fetch an upgrade definition by its string identifier.
 
         Args:

@@ -79,7 +79,7 @@ def test_cost_is_monotonically_increasing() -> None:
     prev = compute_unit_cost(_BASE, _FACTOR, _TYPE, 0)
     for n in range(1, 60):
         curr = compute_unit_cost(_BASE, _FACTOR, _TYPE, n)
-        assert curr >= prev, f"Cost decreased from n={n-1} to n={n}"
+        assert curr >= prev, f"Cost decreased from n={n - 1} to n={n}"
         prev = curr
 
 

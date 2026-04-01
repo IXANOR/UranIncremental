@@ -42,6 +42,7 @@ async def test_single_barrel_produces_positive_output(db_session: AsyncSession) 
         player.last_online_at = datetime.now(UTC)
 
         from app.db.repositories.player_unit import PlayerUnitRepository
+
         await PlayerUnitRepository.upsert(db_session, player.id, "barrel", amount_owned=1)
 
     async with db_session.begin():
@@ -66,6 +67,7 @@ async def test_no_deadlock_after_offline_tick(db_session: AsyncSession) -> None:
         player.last_online_at = datetime.now(UTC) - timedelta(hours=8)
 
         from app.db.repositories.player_unit import PlayerUnitRepository
+
         await PlayerUnitRepository.upsert(db_session, player.id, "barrel", amount_owned=5)
 
     async with db_session.begin():

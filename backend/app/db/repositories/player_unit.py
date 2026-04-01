@@ -10,9 +10,7 @@ class PlayerUnitRepository:
     """Data access layer for PlayerUnit (units owned by a player)."""
 
     @staticmethod
-    async def get_by_player(
-        session: AsyncSession, player_id: uuid.UUID
-    ) -> list[PlayerUnit]:
+    async def get_by_player(session: AsyncSession, player_id: uuid.UUID) -> list[PlayerUnit]:
         """Return all unit rows for a player.
 
         Args:
@@ -22,9 +20,7 @@ class PlayerUnitRepository:
         Returns:
             List of PlayerUnit rows (may be empty if no units purchased yet).
         """
-        result = await session.execute(
-            select(PlayerUnit).where(PlayerUnit.player_id == player_id)
-        )
+        result = await session.execute(select(PlayerUnit).where(PlayerUnit.player_id == player_id))
         return list(result.scalars().all())
 
     @staticmethod

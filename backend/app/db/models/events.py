@@ -1,5 +1,6 @@
 import uuid
 from datetime import UTC, datetime
+from typing import Any
 
 from sqlalchemy import JSON, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
@@ -17,11 +18,7 @@ class EventLog(Base):
     __tablename__ = "event_log"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
-    player_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("player_state.id", ondelete="CASCADE")
-    )
+    player_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("player_state.id", ondelete="CASCADE"))
     event_type: Mapped[str] = mapped_column(String(64))
-    payload: Mapped[dict] = mapped_column(JSON, default=dict)
-    created_at: Mapped[datetime] = mapped_column(
-        default=lambda: datetime.now(UTC)
-    )
+    payload: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(UTC))

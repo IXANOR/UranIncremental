@@ -97,9 +97,7 @@ async def correct_state(
         for unit_id, patch in body.units.items():
             fields = patch.model_dump(exclude_none=True)
             if fields:
-                await PlayerUnitRepository.upsert(
-                    session, player.id, unit_id, **fields
-                )
+                await PlayerUnitRepository.upsert(session, player.id, unit_id, **fields)
 
     # Invalidate snapshot so next tick re-signs from the patched state
     player.snapshot_signature = ""

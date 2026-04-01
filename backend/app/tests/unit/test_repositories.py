@@ -135,21 +135,15 @@ async def test_player_unit_upsert_creates_and_updates(db_session: AsyncSession) 
         await seed(db_session)
 
     async with db_session.begin():
-        row = await PlayerUnitRepository.upsert(
-            db_session, player.id, "barrel", amount_owned=5
-        )
+        row = await PlayerUnitRepository.upsert(db_session, player.id, "barrel", amount_owned=5)
     assert row.amount_owned == 5
 
     async with db_session.begin():
-        row2 = await PlayerUnitRepository.upsert(
-            db_session, player.id, "barrel", amount_owned=10
-        )
+        row2 = await PlayerUnitRepository.upsert(db_session, player.id, "barrel", amount_owned=10)
     assert row2.amount_owned == 10
 
     async with db_session.begin():
-        fetched = await PlayerUnitRepository.get_by_player_and_unit(
-            db_session, player.id, "barrel"
-        )
+        fetched = await PlayerUnitRepository.get_by_player_and_unit(db_session, player.id, "barrel")
         assert fetched is not None
         assert fetched.amount_owned == 10
 
@@ -182,9 +176,7 @@ async def test_player_upgrade_create_and_fetch(db_session: AsyncSession) -> None
         await seed(db_session)
 
     async with db_session.begin():
-        row = await PlayerUpgradeRepository.create(
-            db_session, player.id, "offline_module_mk1"
-        )
+        row = await PlayerUpgradeRepository.create(db_session, player.id, "offline_module_mk1")
     assert row.level == 1
 
     async with db_session.begin():

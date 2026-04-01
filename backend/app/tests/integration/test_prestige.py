@@ -27,9 +27,7 @@ async def api_client(seeded):
         yield seeded
 
     app.dependency_overrides[get_db] = _override
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         yield client
     app.dependency_overrides.clear()
 
@@ -56,9 +54,7 @@ def player_header(player) -> dict[str, str]:
 # ---------------------------------------------------------------------------
 
 
-async def test_prestige_success(
-    api_client: AsyncClient, player, player_header: dict
-) -> None:
+async def test_prestige_success(api_client: AsyncClient, player, player_header: dict) -> None:
     """Prestige with sufficient u238 returns 200 with new_prestige_count=1."""
     resp = await api_client.post("/api/v1/game/prestige", headers=player_header)
     assert resp.status_code == 200

@@ -10,9 +10,7 @@ class PlayerUpgradeRepository:
     """Data access layer for PlayerUpgrade (upgrades purchased by a player)."""
 
     @staticmethod
-    async def get_by_player(
-        session: AsyncSession, player_id: uuid.UUID
-    ) -> list[PlayerUpgrade]:
+    async def get_by_player(session: AsyncSession, player_id: uuid.UUID) -> list[PlayerUpgrade]:
         """Return all upgrade rows for a player.
 
         Args:
@@ -44,9 +42,7 @@ class PlayerUpgradeRepository:
         return await session.get(PlayerUpgrade, (player_id, upgrade_id))
 
     @staticmethod
-    async def create(
-        session: AsyncSession, player_id: uuid.UUID, upgrade_id: str
-    ) -> PlayerUpgrade:
+    async def create(session: AsyncSession, player_id: uuid.UUID, upgrade_id: str) -> PlayerUpgrade:
         """Record that a player has purchased an upgrade (level 1).
 
         Args:
@@ -63,9 +59,7 @@ class PlayerUpgradeRepository:
         return row
 
     @staticmethod
-    async def increment_level(
-        session: AsyncSession, upgrade: PlayerUpgrade
-    ) -> PlayerUpgrade:
+    async def increment_level(session: AsyncSession, upgrade: PlayerUpgrade) -> PlayerUpgrade:
         """Increment the level of a repeatable upgrade by 1.
 
         Args:

@@ -40,14 +40,8 @@ class PlayerUnit(Base):
     player_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("player_state.id", ondelete="CASCADE"), primary_key=True
     )
-    unit_id: Mapped[str] = mapped_column(
-        ForeignKey("unit_definition.id"), primary_key=True
-    )
+    unit_id: Mapped[str] = mapped_column(ForeignKey("unit_definition.id"), primary_key=True)
     amount_owned: Mapped[int] = mapped_column(default=0)
-    effective_multiplier: Mapped[Decimal] = mapped_column(
-        _DECIMAL, default=Decimal("1.0")
-    )
+    effective_multiplier: Mapped[Decimal] = mapped_column(_DECIMAL, default=Decimal("1.0"))
     automation_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
-    upkeep_energy_per_sec: Mapped[Decimal] = mapped_column(
-        _DECIMAL, default=Decimal("0")
-    )
+    upkeep_energy_per_sec: Mapped[Decimal] = mapped_column(_DECIMAL, default=Decimal("0"))

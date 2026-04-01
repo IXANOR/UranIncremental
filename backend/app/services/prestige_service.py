@@ -74,8 +74,7 @@ async def prestige(session: AsyncSession, player: PlayerState) -> PrestigeResult
 
     if wallet.u238 < PRESTIGE_U238_REQUIREMENT:
         raise PrestigeNotAvailableError(
-            f"Need {PRESTIGE_U238_REQUIREMENT} u238 to prestige, "
-            f"have {wallet.u238}"
+            f"Need {PRESTIGE_U238_REQUIREMENT} u238 to prestige, have {wallet.u238}"
         )
 
     # --- Collect surviving upgrades before deletion -------------------------

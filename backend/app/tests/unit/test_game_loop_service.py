@@ -182,8 +182,12 @@ async def test_tick_upkeep_deducted_when_sufficient(db_session: AsyncSession) ->
         w.energy_drink = Decimal("10000")
         # Unit with automation enabled: 1 ED/s upkeep
         unit = await PlayerUnitRepository.upsert(
-            db_session, player.id, "barrel", amount_owned=1,
-            automation_enabled=True, upkeep_energy_per_sec=Decimal("1"),
+            db_session,
+            player.id,
+            "barrel",
+            amount_owned=1,
+            automation_enabled=True,
+            upkeep_energy_per_sec=Decimal("1"),
         )
         assert unit is not None
 
@@ -211,12 +215,20 @@ async def test_tick_upkeep_disables_automation_when_broke(db_session: AsyncSessi
         w.energy_drink = Decimal("0")
         # Two units with automation: heavy upkeep each
         await PlayerUnitRepository.upsert(
-            db_session, player.id, "barrel", amount_owned=1,
-            automation_enabled=True, upkeep_energy_per_sec=Decimal("10"),
+            db_session,
+            player.id,
+            "barrel",
+            amount_owned=1,
+            automation_enabled=True,
+            upkeep_energy_per_sec=Decimal("10"),
         )
         await PlayerUnitRepository.upsert(
-            db_session, player.id, "mini_reactor", amount_owned=1,
-            automation_enabled=True, upkeep_energy_per_sec=Decimal("10"),
+            db_session,
+            player.id,
+            "mini_reactor",
+            amount_owned=1,
+            automation_enabled=True,
+            upkeep_energy_per_sec=Decimal("10"),
         )
 
     async with db_session.begin():
@@ -294,12 +306,16 @@ async def test_tick_negative_delta_logs_anomaly(db_session: AsyncSession) -> Non
 
     # event_log must contain a delta_anomaly entry
     rows = (
-        await db_session.execute(
-            select(EventLog)
-            .where(EventLog.player_id == player.id)
-            .where(EventLog.event_type == "delta_anomaly")
+        (
+            await db_session.execute(
+                select(EventLog)
+                .where(EventLog.player_id == player.id)
+                .where(EventLog.event_type == "delta_anomaly")
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     assert len(rows) == 1
     assert rows[0].payload["type"] == "negative"
 
@@ -320,12 +336,16 @@ async def test_tick_excessive_delta_logs_anomaly(db_session: AsyncSession) -> No
         await tick(db_session, p)
 
     rows = (
-        await db_session.execute(
-            select(EventLog)
-            .where(EventLog.player_id == player.id)
-            .where(EventLog.event_type == "delta_anomaly")
+        (
+            await db_session.execute(
+                select(EventLog)
+                .where(EventLog.player_id == player.id)
+                .where(EventLog.event_type == "delta_anomaly")
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     assert len(rows) == 1
     assert rows[0].payload["type"] == "excessive"
     assert rows[0].payload["cap_seconds"] == 14400
@@ -346,12 +366,16 @@ async def test_tick_normal_delta_does_not_log_anomaly(db_session: AsyncSession) 
         await tick(db_session, p)
 
     rows = (
-        await db_session.execute(
-            select(EventLog)
-            .where(EventLog.player_id == player.id)
-            .where(EventLog.event_type == "delta_anomaly")
+        (
+            await db_session.execute(
+                select(EventLog)
+                .where(EventLog.player_id == player.id)
+                .where(EventLog.event_type == "delta_anomaly")
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     assert len(rows) == 0
 
 

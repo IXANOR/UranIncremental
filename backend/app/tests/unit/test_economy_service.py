@@ -84,13 +84,15 @@ async def test_buy_unit_bulk_cost_is_sequential_sum(db_session: AsyncSession) ->
         result = await buy_unit(db_session, p, "barrel", quantity=5)
 
     from app.db.repositories.unit_definition import UnitDefinitionRepository
+
     async with db_session.begin():
         barrel = await UnitDefinitionRepository.get_by_id(db_session, "barrel")
         assert barrel is not None
 
     expected = sum(
-        compute_unit_cost(barrel.base_cost_amount, barrel.cost_growth_factor,
-                          barrel.cost_growth_type, i)
+        compute_unit_cost(
+            barrel.base_cost_amount, barrel.cost_growth_factor, barrel.cost_growth_type, i
+        )
         for i in range(5)
     )
     assert result.total_cost == expected

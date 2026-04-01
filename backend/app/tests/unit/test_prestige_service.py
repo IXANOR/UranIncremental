@@ -1,6 +1,5 @@
 """Unit tests for prestige_service."""
 
-from datetime import UTC, datetime
 from decimal import Decimal
 
 import pytest
@@ -177,8 +176,11 @@ async def test_prestige_resets_effective_multipliers(db_session: AsyncSession) -
         await seed(db_session)
         player, _ = await _make_player_with_u238(db_session, PRESTIGE_U238_REQUIREMENT)
         await PlayerUnitRepository.upsert(
-            db_session, player.id, "barrel",
-            amount_owned=1, effective_multiplier=Decimal("3.5"),
+            db_session,
+            player.id,
+            "barrel",
+            amount_owned=1,
+            effective_multiplier=Decimal("3.5"),
         )
 
     async with db_session.begin():
@@ -186,9 +188,7 @@ async def test_prestige_resets_effective_multipliers(db_session: AsyncSession) -
         assert p is not None
         await prestige(db_session, p)
 
-    barrel = await PlayerUnitRepository.get_by_player_and_unit(
-        db_session, player.id, "barrel"
-    )
+    barrel = await PlayerUnitRepository.get_by_player_and_unit(db_session, player.id, "barrel")
     assert barrel is not None
     assert barrel.effective_multiplier == Decimal("1.0")
 

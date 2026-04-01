@@ -45,10 +45,10 @@ def compute_unit_cost(
     if growth_type == "linear_early_exp_late":
         if n <= _EARLY_GAME_THRESHOLD:
             return base_cost * (Decimal("1") + (growth_factor - Decimal("1")) * n)
-        return base_cost * (growth_factor ** n)
+        return base_cost * (growth_factor**n)
 
     # Generic fallback: pure exponential
-    return base_cost * (growth_factor ** n)
+    return base_cost * (growth_factor**n)
 
 
 def compute_bulk_cost(
@@ -81,6 +81,9 @@ def compute_bulk_cost(
         raise ValueError(f"amount_owned must be >= 0, got {amount_owned}")
 
     return sum(
-        compute_unit_cost(base_cost, growth_factor, growth_type, amount_owned + i)
-        for i in range(quantity)
+        (
+            compute_unit_cost(base_cost, growth_factor, growth_type, amount_owned + i)
+            for i in range(quantity)
+        ),
+        Decimal("0"),
     )

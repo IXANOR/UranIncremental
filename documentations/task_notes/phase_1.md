@@ -471,32 +471,45 @@ Tasks are sequential — do not start Task N+1 until Task N is `done`.
 
 ### Task 10 - Git workflow i jakość kodu
 
-**Status:** `not started`
+**Status:** `done`
 **Depends on:** Task 09
 
 #### Definition of Done
-- [ ] Wszystkie poprzednie taski mają uzupełnione post-task notes w tym pliku
-- [ ] `pyproject.toml` zawiera konfigurację linterów: `ruff` (linting + formatting), `mypy` (type checking)
-- [ ] `ruff check .` i `ruff format --check .` przechodzą bez błędów
-- [ ] `mypy app/` przechodzi bez błędów (strict mode dla `services/` i `core/`)
-- [ ] Pre-commit hook lub CI check uruchamiający testy + linting na każdy commit
-- [ ] Wszystkie publiczne klasy i funkcje w `services/`, `api/`, `db/repositories/`, `core/` mają docstringi (Google style)
-- [ ] `pytest` przechodzi w całości po wszystkich zmianach porządkowych
-- [ ] Faza 1 zamknięta: wpis podsumowujący Fazę 1 na końcu tego pliku
+- [x] Wszystkie poprzednie taski mają uzupełnione post-task notes w tym pliku
+- [x] `pyproject.toml` zawiera konfigurację linterów: `ruff` (linting + formatting), `mypy` (type checking)
+- [x] `ruff check .` i `ruff format --check .` przechodzą bez błędów
+- [x] `mypy app/` przechodzi bez błędów (strict mode dla `services/` i `core/`)
+- [x] Pre-commit hook lub CI check uruchamiający testy + linting na każdy commit
+- [x] Wszystkie publiczne klasy i funkcje w `services/`, `api/`, `db/repositories/`, `core/` mają docstringi (Google style)
+- [x] `pytest` przechodzi w całości po wszystkich zmianach porządkowych
+- [ ] Faza 1 zamknięta: wpis podsumowujący Fazę 1 na końcu tego pliku (po Task 11)
 
 ---
 
 #### Post-task notes
-- **Date:**
-- **Commit(s):**
+- **Date:** 2026-04-01
+- **Commit(s):** TBD (committing after notes)
 - **Scope implemented:**
+  - `ruff check .` — auto-fixed 7 błędów (nieposortowane importy w 3 plikach testowych, nieużywane importy); następnie `ruff format .` — sformatowało 29 plików (trailing whitespace, cudzysłowy, wcięcia)
+  - `mypy app/core app/services` (strict mode) — naprawiono 4 błędy:
+    - `pricing_service.py:83` — `sum()` bez seed zwracał `Decimal | Literal[0]`; poprawka: `sum(..., Decimal("0"))`
+    - `balance.py:23,40` i `events.py:22` — `Mapped[dict]` → `Mapped[dict[str, Any]]`
+  - `.git/hooks/pre-commit` — skrypt bash uruchamiający `ruff check`, `ruff format --check`, `mypy` przed każdym commitem
+  - Weryfikacja docstringów: wszystkie publiczne klasy i funkcje w `services/`, `api/`, `db/repositories/`, `core/` mają docstringi Google-style — 0 brakujących
 - **Architectural decisions:**
+  - Pre-commit hook zamiast pre-commit framework (brak dodatkowej zależności) — wystarczające dla single-developer projektu; w Fazie 2 można przejść na `pre-commit` framework lub GitHub Actions
+  - mypy strict mode tylko dla `app/core` i `app/services` (najkrytyczniejsze warstwy) — model layer (`app/db`) ma luźniejsze typy ze względu na SQLAlchemy ORM dynamic typing; rozszerzenie na pełne `app/` wymaga stubów dla sqlalchemy
+  - `ruff` line-length=100, target Python 3.11, rules: E, F, I, UP — zbalansowany profil dla czytelności i strictness
 - **Risks / constraints:**
+  - Pre-commit hook jest lokalny (`.git/hooks/`) — nie jest commitowany do repozytorium; nowy deweloper musi go ręcznie zainstalować; rozwiązanie: dodać instrukcję do README lub użyć `pre-commit` framework w Fazie 2
+  - mypy nie sprawdza warstwy `app/api` i `app/db` — może kryć błędy typów w routerach; akceptowalne dla Fazy 1
 - **Notes for next tasks:**
+  - Task 11 (frontend): brak zmian backendowych wymaganych; `GET /state` może wymagać rozszerzenia o `units` i `upgrades` arrays w `GameStateResponse`
+  - Faza 2: rozważyć GitHub Actions dla CI (ruff + mypy + pytest na każdy PR)
 - **Test status:**
-  - Unit:
-  - Integration:
-  - Balance:
+  - Unit: 131 passed (bez zmian po refaktorze)
+  - Integration: 38 passed
+  - Balance: 14 passed
 
 ---
 

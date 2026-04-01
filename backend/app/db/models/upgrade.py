@@ -44,10 +44,6 @@ class PlayerUpgrade(Base):
     player_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("player_state.id", ondelete="CASCADE"), primary_key=True
     )
-    upgrade_id: Mapped[str] = mapped_column(
-        ForeignKey("upgrade_definition.id"), primary_key=True
-    )
+    upgrade_id: Mapped[str] = mapped_column(ForeignKey("upgrade_definition.id"), primary_key=True)
     level: Mapped[int] = mapped_column(default=1)
-    purchased_at: Mapped[datetime] = mapped_column(
-        default=lambda: datetime.now(UTC)
-    )
+    purchased_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(UTC))

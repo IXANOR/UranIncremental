@@ -108,9 +108,7 @@ async def buy_unit(
     if unit_def is None:
         raise UnknownUnitError(f"Unit '{unit_id}' not found")
 
-    player_unit = await PlayerUnitRepository.get_by_player_and_unit(
-        session, player.id, unit_id
-    )
+    player_unit = await PlayerUnitRepository.get_by_player_and_unit(session, player.id, unit_id)
     amount_owned = player_unit.amount_owned if player_unit is not None else 0
 
     total_cost = compute_bulk_cost(
@@ -128,8 +126,7 @@ async def buy_unit(
     currency_balance: Decimal = getattr(wallet, unit_def.base_cost_currency)
     if currency_balance < total_cost:
         raise InsufficientFundsError(
-            f"Need {total_cost} {unit_def.base_cost_currency}, "
-            f"have {currency_balance}"
+            f"Need {total_cost} {unit_def.base_cost_currency}, have {currency_balance}"
         )
 
     setattr(wallet, unit_def.base_cost_currency, currency_balance - total_cost)
@@ -187,8 +184,7 @@ async def buy_upgrade(
     currency_balance: Decimal = getattr(wallet, upgrade_def.cost_currency)
     if currency_balance < upgrade_def.cost_amount:
         raise InsufficientFundsError(
-            f"Need {upgrade_def.cost_amount} {upgrade_def.cost_currency}, "
-            f"have {currency_balance}"
+            f"Need {upgrade_def.cost_amount} {upgrade_def.cost_currency}, have {currency_balance}"
         )
 
     setattr(wallet, upgrade_def.cost_currency, currency_balance - upgrade_def.cost_amount)
@@ -196,16 +192,12 @@ async def buy_upgrade(
     if existing is not None:
         player_upgrade = await PlayerUpgradeRepository.increment_level(session, existing)
     else:
-        player_upgrade = await PlayerUpgradeRepository.create(
-            session, player.id, upgrade_id
-        )
+        player_upgrade = await PlayerUpgradeRepository.create(session, player.id, upgrade_id)
 
     await _apply_upgrade_effect(session, player, upgrade_def)
 
     await session.flush()
-    return BuyUpgradeResult(
-        wallet=wallet, player_upgrade=player_upgrade, upgrade_def=upgrade_def
-    )
+    return BuyUpgradeResult(wallet=wallet, player_upgrade=player_upgrade, upgrade_def=upgrade_def)
 
 
 async def _apply_upgrade_effect(
@@ -234,9 +226,7 @@ async def _apply_upgrade_effect(
         unit_row.effective_multiplier = unit_row.effective_multiplier * value
 
     elif effect == "offline_eff_up":
-        player.offline_efficiency = float(
-            Decimal(str(player.offline_efficiency)) + value
-        )
+        player.offline_efficiency = float(Decimal(str(player.offline_efficiency)) + value)
 
     elif effect == "offline_cap_up":
         player.offline_cap_seconds = int(player.offline_cap_seconds + int(value))

@@ -30,9 +30,7 @@ async def test_centrifuge_reaches_prestige_threshold_in_reasonable_time(
         player.last_tick_at = datetime.now(UTC) - timedelta(seconds=1100)
         player.last_online_at = datetime.now(UTC)
         # Pre-fund with centrifuge and give it to the player
-        await PlayerUnitRepository.upsert(
-            db_session, player.id, "centrifuge_t2", amount_owned=1
-        )
+        await PlayerUnitRepository.upsert(db_session, player.id, "centrifuge_t2", amount_owned=1)
         w = await WalletRepository.get_by_player(db_session, player.id)
         assert w is not None
         w.energy_drink = Decimal("0")  # no ED production, isolate u238 output
@@ -60,9 +58,7 @@ async def test_prestige_production_boost_measurable(db_session: AsyncSession) ->
         player_base = await PlayerStateRepository.create(db_session)
         player_base.last_tick_at = datetime.now(UTC) - timedelta(seconds=delta_seconds)
         player_base.last_online_at = datetime.now(UTC)
-        await PlayerUnitRepository.upsert(
-            db_session, player_base.id, "barrel", amount_owned=10
-        )
+        await PlayerUnitRepository.upsert(db_session, player_base.id, "barrel", amount_owned=10)
         w = await WalletRepository.get_by_player(db_session, player_base.id)
         assert w is not None
         w.energy_drink = Decimal("0")
@@ -80,9 +76,7 @@ async def test_prestige_production_boost_measurable(db_session: AsyncSession) ->
         player_p1.prestige_count = 1
         player_p1.last_tick_at = datetime.now(UTC) - timedelta(seconds=delta_seconds)
         player_p1.last_online_at = datetime.now(UTC)
-        await PlayerUnitRepository.upsert(
-            db_session, player_p1.id, "barrel", amount_owned=10
-        )
+        await PlayerUnitRepository.upsert(db_session, player_p1.id, "barrel", amount_owned=10)
         w2 = await WalletRepository.get_by_player(db_session, player_p1.id)
         assert w2 is not None
         w2.energy_drink = Decimal("0")
@@ -93,9 +87,7 @@ async def test_prestige_production_boost_measurable(db_session: AsyncSession) ->
         p1_result = await tick(db_session, p2)
     p1_gains = p1_result.gains.get("energy_drink", Decimal("0"))
 
-    assert p1_gains > base_gains, (
-        f"Prestige boost not applied: base={base_gains}, p1={p1_gains}"
-    )
+    assert p1_gains > base_gains, f"Prestige boost not applied: base={base_gains}, p1={p1_gains}"
     # Verify the multiplier is approximately 1.15
     ratio = p1_gains / base_gains
     assert Decimal("1.14") <= ratio <= Decimal("1.16"), f"Unexpected ratio: {ratio}"
@@ -114,6 +106,7 @@ async def test_prestige_surviving_upgrade_effect_persists(
         w.u238 = Decimal("5")
         # Pre-create the surviving upgrade row directly
         from app.db.repositories.player_upgrade import PlayerUpgradeRepository
+
         await PlayerUpgradeRepository.create(db_session, player.id, "offline_module_mk1")
 
     async with db_session.begin():

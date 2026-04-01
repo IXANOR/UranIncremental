@@ -17,7 +17,6 @@ from app.db.seed import seed
 from app.db.session import get_db
 from app.main import app
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -52,9 +51,7 @@ async def api_client(seeded):
         yield seeded
 
     app.dependency_overrides[get_db] = _override
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         yield client
     app.dependency_overrides.clear()
 
@@ -130,23 +127,17 @@ async def test_get_state_missing_header(api_client: AsyncClient) -> None:
 
 async def test_get_state_invalid_uuid(api_client: AsyncClient) -> None:
     """GET /state with a non-UUID X-Player-ID returns 400."""
-    resp = await api_client.get(
-        "/api/v1/game/state", headers={"X-Player-ID": "not-a-uuid"}
-    )
+    resp = await api_client.get("/api/v1/game/state", headers={"X-Player-ID": "not-a-uuid"})
     assert resp.status_code == 400
 
 
 async def test_get_state_unknown_player(api_client: AsyncClient) -> None:
     """GET /state with a valid but non-existent UUID returns 404."""
-    resp = await api_client.get(
-        "/api/v1/game/state", headers={"X-Player-ID": str(uuid.uuid4())}
-    )
+    resp = await api_client.get("/api/v1/game/state", headers={"X-Player-ID": str(uuid.uuid4())})
     assert resp.status_code == 404
 
 
-async def test_get_state_success(
-    api_client: AsyncClient, player, player_header: dict
-) -> None:
+async def test_get_state_success(api_client: AsyncClient, player, player_header: dict) -> None:
     """GET /state returns player, wallet, and server_time after a tick."""
     resp = await api_client.get("/api/v1/game/state", headers=player_header)
     assert resp.status_code == 200
@@ -174,9 +165,7 @@ async def test_get_state_increments_version(
 # ---------------------------------------------------------------------------
 
 
-async def test_buy_unit_success(
-    api_client: AsyncClient, player, player_header: dict
-) -> None:
+async def test_buy_unit_success(api_client: AsyncClient, player, player_header: dict) -> None:
     """Buying a barrel with sufficient funds returns new_amount_owned=1."""
     resp = await api_client.post(
         "/api/v1/economy/buy-unit",
@@ -192,9 +181,7 @@ async def test_buy_unit_success(
     assert Decimal(body["wallet_after"]["energy_drink"]) < Decimal("1000")
 
 
-async def test_buy_unit_bulk(
-    api_client: AsyncClient, player, player_header: dict
-) -> None:
+async def test_buy_unit_bulk(api_client: AsyncClient, player, player_header: dict) -> None:
     """Buying quantity=3 barrels returns new_amount_owned=3."""
     resp = await api_client.post(
         "/api/v1/economy/buy-unit",
@@ -218,9 +205,7 @@ async def test_buy_unit_insufficient_funds(
     assert resp.status_code == 409
 
 
-async def test_buy_unit_unknown_unit(
-    api_client: AsyncClient, player, player_header: dict
-) -> None:
+async def test_buy_unit_unknown_unit(api_client: AsyncClient, player, player_header: dict) -> None:
     """Buying a non-existent unit_id returns 404."""
     resp = await api_client.post(
         "/api/v1/economy/buy-unit",
@@ -255,9 +240,7 @@ async def test_buy_unit_missing_header(api_client: AsyncClient) -> None:
 # ---------------------------------------------------------------------------
 
 
-async def test_buy_upgrade_success(
-    api_client: AsyncClient, player, player_header: dict
-) -> None:
+async def test_buy_upgrade_success(api_client: AsyncClient, player, player_header: dict) -> None:
     """Buying barrel_opt_mk1 (costs 200) with 1000 energy_drink succeeds."""
     resp = await api_client.post(
         "/api/v1/economy/buy-upgrade",
@@ -289,13 +272,9 @@ async def test_buy_upgrade_already_purchased(
 ) -> None:
     """Buying a non-repeatable upgrade twice returns 409 on the second attempt."""
     payload = {"upgrade_id": "barrel_opt_mk1"}
-    r1 = await api_client.post(
-        "/api/v1/economy/buy-upgrade", json=payload, headers=player_header
-    )
+    r1 = await api_client.post("/api/v1/economy/buy-upgrade", json=payload, headers=player_header)
     assert r1.status_code == 200
-    r2 = await api_client.post(
-        "/api/v1/economy/buy-upgrade", json=payload, headers=player_header
-    )
+    r2 = await api_client.post("/api/v1/economy/buy-upgrade", json=payload, headers=player_header)
     assert r2.status_code == 409
 
 
@@ -316,9 +295,7 @@ async def test_buy_upgrade_unknown_upgrade(
 # ---------------------------------------------------------------------------
 
 
-async def test_claim_offline_success(
-    api_client: AsyncClient, player, player_header: dict
-) -> None:
+async def test_claim_offline_success(api_client: AsyncClient, player, player_header: dict) -> None:
     """claim-offline returns simulated_seconds, efficiency_used, gains, cap_applied."""
     resp = await api_client.post("/api/v1/time/claim-offline", headers=player_header)
     assert resp.status_code == 200

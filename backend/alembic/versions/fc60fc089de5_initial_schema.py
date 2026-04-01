@@ -40,8 +40,10 @@ def upgrade() -> None:
     op.create_table(
         "wallet",
         sa.Column(
-            "player_id", sa.Uuid(),
-            sa.ForeignKey("player_state.id", ondelete="CASCADE"), primary_key=True,
+            "player_id",
+            sa.Uuid(),
+            sa.ForeignKey("player_state.id", ondelete="CASCADE"),
+            primary_key=True,
         ),
         sa.Column("energy_drink", _DECIMAL, nullable=False, server_default="50"),
         sa.Column("u238", _DECIMAL, nullable=False, server_default="0"),
@@ -67,8 +69,10 @@ def upgrade() -> None:
     op.create_table(
         "player_unit",
         sa.Column(
-            "player_id", sa.Uuid(),
-            sa.ForeignKey("player_state.id", ondelete="CASCADE"), primary_key=True,
+            "player_id",
+            sa.Uuid(),
+            sa.ForeignKey("player_state.id", ondelete="CASCADE"),
+            primary_key=True,
         ),
         sa.Column("unit_id", sa.String(64), sa.ForeignKey("unit_definition.id"), primary_key=True),
         sa.Column("amount_owned", sa.Integer(), nullable=False, server_default="0"),
@@ -95,12 +99,16 @@ def upgrade() -> None:
     op.create_table(
         "player_upgrade",
         sa.Column(
-            "player_id", sa.Uuid(),
-            sa.ForeignKey("player_state.id", ondelete="CASCADE"), primary_key=True,
+            "player_id",
+            sa.Uuid(),
+            sa.ForeignKey("player_state.id", ondelete="CASCADE"),
+            primary_key=True,
         ),
         sa.Column(
-            "upgrade_id", sa.String(64),
-            sa.ForeignKey("upgrade_definition.id"), primary_key=True,
+            "upgrade_id",
+            sa.String(64),
+            sa.ForeignKey("upgrade_definition.id"),
+            primary_key=True,
         ),
         sa.Column("level", sa.Integer(), nullable=False, server_default="1"),
         sa.Column("purchased_at", sa.DateTime(timezone=True), nullable=False),
@@ -129,8 +137,10 @@ def upgrade() -> None:
         "event_log",
         sa.Column("id", sa.Uuid(), primary_key=True),
         sa.Column(
-            "player_id", sa.Uuid(),
-            sa.ForeignKey("player_state.id", ondelete="CASCADE"), nullable=False,
+            "player_id",
+            sa.Uuid(),
+            sa.ForeignKey("player_state.id", ondelete="CASCADE"),
+            nullable=False,
         ),
         sa.Column("event_type", sa.String(64), nullable=False),
         sa.Column("payload", sa.JSON(), nullable=False, server_default="{}"),

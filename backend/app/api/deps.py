@@ -33,14 +33,10 @@ async def get_current_player(
     try:
         player_id = uuid.UUID(x_player_id)
     except ValueError:
-        raise HTTPException(
-            status_code=400, detail="X-Player-ID must be a valid UUID"
-        )
+        raise HTTPException(status_code=400, detail="X-Player-ID must be a valid UUID")
     player = await PlayerStateRepository.get_by_id(session, player_id)
     if player is None:
-        raise HTTPException(
-            status_code=404, detail=f"Player '{x_player_id}' not found"
-        )
+        raise HTTPException(status_code=404, detail=f"Player '{x_player_id}' not found")
     return player
 
 

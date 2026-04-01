@@ -23,9 +23,7 @@ class WalletRepository:
         return await session.get(Wallet, player_id)
 
     @staticmethod
-    async def update(
-        session: AsyncSession, wallet: Wallet, **kwargs: Decimal
-    ) -> Wallet:
+    async def update(session: AsyncSession, wallet: Wallet, **kwargs: Decimal) -> Wallet:
         """Apply currency updates to a wallet.
 
         Args:

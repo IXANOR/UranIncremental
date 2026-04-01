@@ -63,9 +63,7 @@ class PlayerStateRepository:
         return player
 
     @staticmethod
-    async def update(
-        session: AsyncSession, player: PlayerState, **kwargs: object
-    ) -> PlayerState:
+    async def update(session: AsyncSession, player: PlayerState, **kwargs: object) -> PlayerState:
         """Apply field updates to an existing PlayerState.
 
         Args:

@@ -111,9 +111,7 @@ async def tick(
                 "snapshot_invalid",
                 {"version": player.version, "player_id": str(player.id)},
             )
-            raise SnapshotSignatureError(
-                f"Snapshot signature mismatch for player {player.id}"
-            )
+            raise SnapshotSignatureError(f"Snapshot signature mismatch for player {player.id}")
 
     # --- Delta anomaly detection --------------------------------------------
     raw_delta_seconds = (ensure_utc(now) - ensure_utc(player.last_tick_at)).total_seconds()
@@ -144,9 +142,11 @@ async def tick(
 
     # --- Delta time ---------------------------------------------------------
     is_offline = force_offline or (
-        (now - player.last_online_at.replace(tzinfo=UTC)
-         if player.last_online_at.tzinfo is None
-         else now - player.last_online_at).total_seconds()
+        (
+            now - player.last_online_at.replace(tzinfo=UTC)
+            if player.last_online_at.tzinfo is None
+            else now - player.last_online_at
+        ).total_seconds()
         > _ONLINE_THRESHOLD_SECONDS
     )
     effective_delta, cap_applied = compute_delta(
@@ -200,16 +200,17 @@ async def tick(
                 # (reverse alphabetical order — worst-named units first).
                 for unit in sorted(auto_units, key=lambda u: u.unit_id, reverse=True):
                     unit_cost = unit.upkeep_energy_per_sec * delta_dec
-                    remaining = sum(
-                        u.upkeep_energy_per_sec for u in units if u.automation_enabled
-                    ) * delta_dec
+                    remaining = (
+                        sum(u.upkeep_energy_per_sec for u in units if u.automation_enabled)
+                        * delta_dec
+                    )
                     if wallet.energy_drink >= remaining - unit_cost:
                         break
                     unit.automation_enabled = False
 
-                affordable = sum(
-                    u.upkeep_energy_per_sec for u in units if u.automation_enabled
-                ) * delta_dec
+                affordable = (
+                    sum(u.upkeep_energy_per_sec for u in units if u.automation_enabled) * delta_dec
+                )
                 wallet.energy_drink = max(Decimal("0"), wallet.energy_drink - affordable)
 
     # --- Persist changes ----------------------------------------------------

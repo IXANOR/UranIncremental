@@ -15,7 +15,6 @@ from app.db.seed import seed
 from app.db.session import get_db
 from app.main import app
 
-
 # ---------------------------------------------------------------------------
 # Fixtures (mirror the pattern from test_endpoints.py)
 # ---------------------------------------------------------------------------
@@ -50,9 +49,7 @@ async def api_client(seeded):
         yield seeded
 
     app.dependency_overrides[get_db] = _override
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         yield client
     app.dependency_overrides.clear()
 
@@ -174,9 +171,7 @@ async def test_simulate_time_negative_seconds_rejected(
 
 async def test_simulate_time_missing_player_header(api_client: AsyncClient) -> None:
     """simulate-time without X-Player-ID returns 400."""
-    resp = await api_client.post(
-        "/api/v1/test/simulate-time", json={"seconds": 60}
-    )
+    resp = await api_client.post("/api/v1/test/simulate-time", json={"seconds": 60})
     assert resp.status_code == 400
 
 
@@ -203,9 +198,7 @@ async def test_correct_state_blocked_when_test_mode_false(
 # ---------------------------------------------------------------------------
 
 
-async def test_correct_state_patches_wallet(
-    api_client: AsyncClient, player_header: dict
-) -> None:
+async def test_correct_state_patches_wallet(api_client: AsyncClient, player_header: dict) -> None:
     """correct-state sets energy_drink to the provided value."""
     resp = await api_client.post(
         "/api/v1/test/correct-state",
@@ -234,9 +227,7 @@ async def test_correct_state_patches_only_provided_fields(
     assert Decimal(body["wallet_after"]["u238"]) == Decimal("500")
 
 
-async def test_correct_state_patches_units(
-    api_client: AsyncClient, player_header: dict
-) -> None:
+async def test_correct_state_patches_units(api_client: AsyncClient, player_header: dict) -> None:
     """correct-state sets barrel amount_owned to the provided value."""
     resp = await api_client.post(
         "/api/v1/test/correct-state",
@@ -247,9 +238,7 @@ async def test_correct_state_patches_units(
     assert resp.json()["ok"] is True
 
 
-async def test_correct_state_empty_body(
-    api_client: AsyncClient, player_header: dict
-) -> None:
+async def test_correct_state_empty_body(api_client: AsyncClient, player_header: dict) -> None:
     """correct-state with empty body is a no-op and returns current wallet."""
     resp = await api_client.post(
         "/api/v1/test/correct-state",

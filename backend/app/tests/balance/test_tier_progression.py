@@ -17,7 +17,6 @@ from app.db.repositories.unit_definition import UnitDefinitionRepository
 from app.db.seed import seed
 from app.services.pricing_service import compute_unit_cost
 
-
 # ---------------------------------------------------------------------------
 # T1 reachability: mini_reactor in < 2 min with 10 barrels
 # ---------------------------------------------------------------------------
