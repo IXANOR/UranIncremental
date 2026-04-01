@@ -70,6 +70,7 @@ class GameStateResponse(BaseModel):
     server_time: datetime
     units: list[UnitStateSchema]
     upgrades: list[UpgradeStateSchema]
+    test_mode: bool
 
 
 class StartGameResponse(BaseModel):

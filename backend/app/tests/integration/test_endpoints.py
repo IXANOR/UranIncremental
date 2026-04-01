@@ -147,7 +147,9 @@ async def test_get_state_success(api_client: AsyncClient, player, player_header:
     assert "server_time" in body
     for currency in ("energy_drink", "u238", "u235", "u233", "meta_isotopes"):
         assert currency in body["wallet"]
-    # Task 11: state must include units and upgrades catalog
+    # Task 11: state must include units, upgrades, and test_mode flag
+    assert "test_mode" in body
+    assert isinstance(body["test_mode"], bool)
     assert "units" in body, "GET /state must return units array"
     assert "upgrades" in body, "GET /state must return upgrades array"
     assert len(body["units"]) > 0

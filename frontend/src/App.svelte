@@ -1,12 +1,13 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import { startGame, fetchState, claimOffline, doPrestige } from './lib/api/client.js';
-  import { gameState, error, offlineGains, canPrestige, player } from './lib/stores/game.js';
+  import { gameState, error, offlineGains, canPrestige, player, testMode } from './lib/stores/game.js';
   import WalletHUD from './lib/components/WalletHUD.svelte';
   import UnitList from './lib/components/UnitList.svelte';
   import UpgradeList from './lib/components/UpgradeList.svelte';
+  import CheatPanel from './lib/components/CheatPanel.svelte';
 
-  const POLL_MS = 5000;
+  const POLL_MS = 500;
   let interval;
   let offlinePending = false;
   let prestigeConfirm = false;
@@ -95,6 +96,10 @@
       {#if $offlineGains.cap_applied}<span class="cap">(limit zastosowany)</span>{/if}
       <button class="btn-dismiss" on:click={dismissOfflineGains}>✕</button>
     </div>
+  {/if}
+
+  {#if $testMode}
+    <CheatPanel />
   {/if}
 
   <WalletHUD />

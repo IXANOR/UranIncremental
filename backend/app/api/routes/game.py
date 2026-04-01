@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_player
+from app.core.config import settings
 from app.db.models.player_state import PlayerState
 from app.db.repositories.player_state import PlayerStateRepository
 from app.db.repositories.player_unit import PlayerUnitRepository
@@ -137,6 +138,7 @@ async def get_state(
         server_time=result.server_time,
         units=units,
         upgrades=upgrades,
+        test_mode=settings.test_mode,
     )
 
 
