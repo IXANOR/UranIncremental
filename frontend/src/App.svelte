@@ -292,7 +292,6 @@
   .pi-label { color: #a73; font-weight: bold; letter-spacing: 0.05em; }
   .pi-sep { color: #432; }
   .pi-item strong { color: #fa8; }
-  .pi-item em { color: #f90; font-style: normal; }
 
   .actions {
     display: flex;
