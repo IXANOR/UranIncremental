@@ -1,5 +1,5 @@
 <script>
-  import { onMount, onDestroy } from 'svelte';
+  import { onMount, onDestroy, tick } from 'svelte';
   import { startGame, fetchState, claimOffline, doPrestige, clickReactor } from './lib/api/client.js';
   import { gameState, error, offlineGains, canPrestige, player, testMode, prestigeOptions } from './lib/stores/game.js';
   import WalletHUD from './lib/components/WalletHUD.svelte';
@@ -18,6 +18,7 @@
   let clickAnimating = false;
   let lastClickGained = null;
   let clickAnimTimer;
+  let clickKey = 0; // incremented each click to restart float animation
 
   async function init() {
     let pid = localStorage.getItem('player_id');
@@ -86,11 +87,15 @@
     try {
       const res = await clickReactor();
       lastClickGained = parseFloat(res.gained).toFixed(2);
+      // Reset animation so it re-triggers on every click
+      clickAnimating = false;
+      await tick();
       clickAnimating = true;
+      clickKey += 1;
       clearTimeout(clickAnimTimer);
-      clickAnimTimer = setTimeout(() => { clickAnimating = false; }, 300);
+      clickAnimTimer = setTimeout(() => { clickAnimating = false; }, 400);
     } catch (e) {
-      // rate limit or other error — silently ignore to avoid spamming error banner
+      // rate limit silently ignored
     }
   }
 
@@ -125,6 +130,27 @@
 
   <WalletHUD />
 
+  <div class="click-hero">
+    <div class="click-float-wrap">
+      {#key clickKey}
+        {#if lastClickGained !== null}
+          <span class="click-float">+{lastClickGained} ED</span>
+        {/if}
+      {/key}
+    </div>
+    <button
+      class="btn-reactor"
+      class:animating={clickAnimating}
+      on:click={handleClick}
+    >
+      <span class="reactor-icon">☢</span>
+      <span class="reactor-label">KLIK!</span>
+      {#if $player}
+        <span class="reactor-sub">×{$player.click_count}</span>
+      {/if}
+    </button>
+  </div>
+
   <div class="prestige-info">
     <span class="pi-label">✦ Prestige</span>
     <span class="pi-sep">—</span>
@@ -146,19 +172,6 @@
   </div>
 
   <div class="actions">
-    <div class="click-section">
-      <button
-        class="btn-click"
-        class:animating={clickAnimating}
-        on:click={handleClick}
-      >
-        ⚡ Klik!
-      </button>
-      {#if lastClickGained !== null}
-        <span class="click-gain" class:pop={clickAnimating}>+{lastClickGained} ED</span>
-      {/if}
-    </div>
-
     {#if offlinePending}
       <button class="btn-action offline" disabled={actionBusy} on:click={handleClaimOffline}>
         📦 Odbierz nagrody offline
@@ -293,47 +306,91 @@
   .pi-sep { color: #432; }
   .pi-item strong { color: #fa8; }
 
+  .click-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 10px 0 14px;
+    position: relative;
+  }
+
+  .click-float-wrap {
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: visible;
+    pointer-events: none;
+  }
+
+  @keyframes float-up {
+    0%   { transform: translateY(0);    opacity: 1; }
+    60%  { transform: translateY(-18px); opacity: 0.9; }
+    100% { transform: translateY(-32px); opacity: 0; }
+  }
+
+  .click-float {
+    color: #7ef;
+    font-size: 1rem;
+    font-weight: bold;
+    animation: float-up 0.55s ease-out forwards;
+  }
+
+  @keyframes reactor-glow {
+    0%   { box-shadow: 0 0 0 0 rgba(50, 220, 120, 0.55); }
+    60%  { box-shadow: 0 0 0 18px rgba(50, 220, 120, 0.1); }
+    100% { box-shadow: 0 0 0 26px rgba(50, 220, 120, 0); }
+  }
+
+  .btn-reactor {
+    background: radial-gradient(ellipse at center, #0d2a18 0%, #060e0a 70%);
+    color: #5dde90;
+    border: 2px solid #1a6035;
+    border-radius: 50%;
+    width: 108px;
+    height: 108px;
+    cursor: pointer;
+    font-family: inherit;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    transition: transform 0.1s ease, border-color 0.1s ease;
+    position: relative;
+    outline: none;
+  }
+  .btn-reactor:hover {
+    border-color: #2a9050;
+    background: radial-gradient(ellipse at center, #112e1e 0%, #080f0b 70%);
+  }
+  .btn-reactor.animating {
+    transform: scale(0.91);
+    border-color: #4dde80;
+    animation: reactor-glow 0.4s ease-out;
+  }
+  .reactor-icon {
+    font-size: 1.8rem;
+    line-height: 1;
+  }
+  .reactor-label {
+    font-size: 0.7rem;
+    font-weight: bold;
+    letter-spacing: 0.12em;
+    color: #7ef;
+  }
+  .reactor-sub {
+    font-size: 0.62rem;
+    color: #3a7;
+    letter-spacing: 0.05em;
+  }
+
   .actions {
     display: flex;
     gap: 10px;
     align-items: center;
     margin-bottom: 14px;
     flex-wrap: wrap;
-  }
-
-  .click-section {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .btn-click {
-    background: #0a1a2a;
-    color: #7ef;
-    border: 1px solid #37a;
-    border-radius: 6px;
-    padding: 8px 20px;
-    cursor: pointer;
-    font-family: inherit;
-    font-size: 1rem;
-    font-weight: bold;
-    transition: transform 0.1s ease, background 0.1s ease;
-  }
-  .btn-click:hover { background: #0e2236; }
-  .btn-click.animating {
-    transform: scale(0.92);
-    background: #1a3a5a;
-  }
-
-  .click-gain {
-    color: #7ef;
-    font-size: 0.85rem;
-    font-weight: bold;
-    opacity: 0;
-    transition: opacity 0.15s ease;
-  }
-  .click-gain.pop {
-    opacity: 1;
   }
 
   .btn-action {

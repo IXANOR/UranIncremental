@@ -58,6 +58,18 @@
     return 'brak efektu';
   }
 
+  function outcomeDesc(o) {
+    if (o.effect_type === 'nothing') return 'Brak efektu';
+    if (o.effect_type === 'prod_bonus') return `+${fmt(o.effect_value)} ED (natychmiast)`;
+    if (o.effect_type === 'temp_multiplier') {
+      const mins = Math.floor(o.duration_seconds / 60);
+      const secs = o.duration_seconds % 60;
+      const time = mins > 0 ? (secs > 0 ? `${mins}m ${secs}s` : `${mins}m`) : `${secs}s`;
+      return `×${parseFloat(o.effect_value).toFixed(1)} produkcja przez ${time}`;
+    }
+    return o.effect_type;
+  }
+
   load();
 </script>
 
@@ -81,6 +93,19 @@
           </span>
         </div>
         <div class="exp-desc">{exp.description}</div>
+        <div class="exp-outcomes">
+          {#each exp.outcomes as o}
+            <div class="outcome-row">
+              <span class="outcome-prob">{Math.round(o.probability * 100)}%</span>
+              <span
+                class="outcome-eff"
+                class:eff-nothing={o.effect_type === 'nothing'}
+                class:eff-bonus={o.effect_type === 'prod_bonus'}
+                class:eff-mult={o.effect_type === 'temp_multiplier'}
+              >{outcomeDesc(o)}</span>
+            </div>
+          {/each}
+        </div>
         <div class="exp-footer">
           <span class="exp-cooldown" class:ready={exp.cooldown_remaining_seconds === 0}>
             {#if exp.cooldown_remaining_seconds > 0}
@@ -176,6 +201,32 @@
     margin-bottom: 8px;
     line-height: 1.4;
   }
+  .exp-outcomes {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: 8px;
+    padding: 6px 8px;
+    background: #060e18;
+    border: 1px solid #122030;
+    border-radius: 3px;
+  }
+  .outcome-row {
+    display: flex;
+    gap: 8px;
+    font-size: 0.75rem;
+    align-items: baseline;
+  }
+  .outcome-prob {
+    color: #556;
+    min-width: 28px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .eff-nothing { color: #445; }
+  .eff-bonus { color: #7ef; }
+  .eff-mult { color: #fa8; }
+
   .exp-footer {
     display: flex;
     align-items: center;

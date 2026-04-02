@@ -11,7 +11,9 @@
     const n = parseFloat(val ?? 0);
     if (n >= 1_000_000) return (n / 1_000_000).toFixed(2) + 'M';
     if (n >= 1_000) return (n / 1_000).toFixed(2) + 'k';
-    return n.toFixed(2);
+    if (n >= 0.01) return n.toFixed(2);
+    if (n > 0) return n.toFixed(4);
+    return '0.00';
   }
 
   function resourceLabel(res) {
@@ -237,8 +239,8 @@
   .owned { color: #7ef; font-size: 0.85rem; }
   .rate { color: #7f7; font-size: 0.8rem; }
 
-  .buy-col { display: flex; align-items: center; gap: 8px; }
-  .cost { color: #aaa; font-size: 0.85rem; white-space: nowrap; }
+  .buy-col { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .cost { color: #aaa; font-size: 0.85rem; white-space: nowrap; min-width: 108px; text-align: right; }
   .cost.cant { color: #633; }
   .chevron { color: #555; font-size: 0.7rem; min-width: 10px; }
 
@@ -252,6 +254,8 @@
     font-size: 0.8rem;
     font-family: inherit;
     white-space: nowrap;
+    min-width: 80px;
+    text-align: center;
     transition: background 0.15s;
   }
   .btn-buy:disabled { opacity: 0.35; cursor: not-allowed; }
