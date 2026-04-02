@@ -20,3 +20,5 @@ export const canPrestige = derived([wallet, prestigeNextRequirement], ([$w, $req
 });
 
 export const testMode = derived(gameState, ($s) => $s?.test_mode === true);
+
+export const prestigeOptions = derived(gameState, ($s) => $s?.prestige_options ?? []);

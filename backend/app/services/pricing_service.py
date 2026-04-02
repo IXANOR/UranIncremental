@@ -87,3 +87,54 @@ def compute_bulk_cost(
         ),
         Decimal("0"),
     )
+
+
+def compute_max_affordable(
+    base_cost: Decimal,
+    growth_factor: Decimal,
+    growth_type: str,
+    amount_owned: int,
+    wallet_balance: Decimal,
+) -> int:
+    """Return the maximum number of units purchasable with ``wallet_balance``.
+
+    Uses a binary search over ``compute_bulk_cost`` to find the largest quantity
+    whose total cost does not exceed the wallet balance.
+
+    Args:
+        base_cost: Base price of the first unit.
+        growth_factor: Multiplicative growth factor.
+        growth_type: Curve type identifier (e.g. ``"linear_early_exp_late"``).
+        amount_owned: Number of units already owned before this purchase.
+        wallet_balance: Available currency.
+
+    Returns:
+        Maximum integer quantity the player can afford (0 if none).
+    """
+    if wallet_balance <= Decimal("0"):
+        return 0
+
+    # Quick check: can they afford even one?
+    if compute_unit_cost(base_cost, growth_factor, growth_type, amount_owned) > wallet_balance:
+        return 0
+
+    lo, hi = 1, 1
+    # Double hi until we overshoot or hit a reasonable cap
+    while True:
+        cost = compute_bulk_cost(base_cost, growth_factor, growth_type, amount_owned, hi)
+        if cost > wallet_balance:
+            break
+        hi *= 2
+        if hi > 100_000:
+            break
+
+    # Binary search between lo and hi
+    while lo < hi:
+        mid = (lo + hi + 1) // 2
+        cost = compute_bulk_cost(base_cost, growth_factor, growth_type, amount_owned, mid)
+        if cost <= wallet_balance:
+            lo = mid
+        else:
+            hi = mid - 1
+
+    return lo

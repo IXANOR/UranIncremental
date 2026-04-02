@@ -69,10 +69,11 @@ export async function simulateTime(seconds) {
   return handle(res);
 }
 
-export async function doPrestige() {
+export async function doPrestige(count = 1, currency = 'u238') {
   const res = await fetch(`${BASE}/game/prestige`, {
     method: 'POST',
     headers: headers(),
+    body: JSON.stringify({ count, currency }),
   });
   return handle(res);
 }

@@ -18,6 +18,8 @@ from app.schemas.game import (
     ClickResponse,
     GameStateResponse,
     PlayerStateSchema,
+    PrestigeOptionSchema,
+    PrestigeRequest,
     PrestigeResponse,
     StartGameResponse,
     UnitStateSchema,
@@ -26,9 +28,18 @@ from app.schemas.game import (
 )
 from app.services.click_service import ClickRateLimitError, process_click
 from app.services.game_loop_service import SnapshotSignatureError, tick
-from app.services.prestige_service import PrestigeNotAvailableError, prestige_requirement
-from app.services.prestige_service import prestige as run_prestige
-from app.services.pricing_service import compute_unit_cost
+from app.services.prestige_service import (
+    _VALID_PRESTIGE_OPTIONS,
+    PrestigeNotAvailableError,
+    multi_prestige_requirement,
+    prestige_bulk,
+    prestige_requirement,
+)
+from app.services.pricing_service import (
+    compute_bulk_cost,
+    compute_max_affordable,
+    compute_unit_cost,
+)
 
 router = APIRouter(prefix="/api/v1/game", tags=["game"])
 
@@ -91,6 +102,8 @@ async def get_state(
     player_units = await PlayerUnitRepository.get_by_player(session, player.id)
     owned_map = {pu.unit_id: pu for pu in player_units}
 
+    wallet = result.wallet
+
     units: list[UnitStateSchema] = []
     for ud in unit_defs:
         pu = owned_map.get(ud.id)
@@ -98,6 +111,20 @@ async def get_state(
         mult = pu.effective_multiplier if pu is not None else Decimal("1")
         next_cost = compute_unit_cost(
             ud.base_cost_amount, ud.cost_growth_factor, ud.cost_growth_type, amount
+        )
+        bulk_10 = compute_bulk_cost(
+            ud.base_cost_amount, ud.cost_growth_factor, ud.cost_growth_type, amount, 10
+        )
+        bulk_100 = compute_bulk_cost(
+            ud.base_cost_amount, ud.cost_growth_factor, ud.cost_growth_type, amount, 100
+        )
+        wallet_balance = getattr(wallet, ud.base_cost_currency, Decimal("0"))
+        max_buy = compute_max_affordable(
+            ud.base_cost_amount,
+            ud.cost_growth_factor,
+            ud.cost_growth_type,
+            amount,
+            wallet_balance,
         )
         units.append(
             UnitStateSchema(
@@ -110,6 +137,9 @@ async def get_state(
                 amount_owned=amount,
                 effective_multiplier=mult,
                 next_cost=next_cost,
+                bulk_10_cost=bulk_10,
+                bulk_100_cost=bulk_100,
+                max_affordable=max_buy,
             )
         )
 
@@ -135,6 +165,20 @@ async def get_state(
         for ud in upgrade_defs
     ]
 
+    p = result.player.prestige_count
+    prestige_options: list[PrestigeOptionSchema] = []
+    for count, (currency, _) in sorted(_VALID_PRESTIGE_OPTIONS.items()):
+        cost, _ = multi_prestige_requirement(p, count, currency)
+        wallet_amount = getattr(wallet, currency, Decimal("0"))
+        prestige_options.append(
+            PrestigeOptionSchema(
+                count=count,
+                currency=currency,
+                cost=cost,
+                can_afford=wallet_amount >= cost,
+            )
+        )
+
     return GameStateResponse(
         player=PlayerStateSchema.model_validate(result.player),
         wallet=WalletSchema.model_validate(result.wallet),
@@ -143,22 +187,32 @@ async def get_state(
         upgrades=upgrades,
         test_mode=settings.test_mode,
         prestige_next_requirement=prestige_requirement(result.player.prestige_count),
+        prestige_options=prestige_options,
     )
 
 
 @router.post("/prestige", response_model=PrestigeResponse)
 async def prestige_endpoint(
+    req: PrestigeRequest = PrestigeRequest(),
     player: PlayerState = Depends(get_current_player),
     session: AsyncSession = Depends(get_db),
 ) -> PrestigeResponse:
-    """Perform a soft reset and advance prestige_count by 1.
+    """Perform a soft reset and advance prestige_count by req.count.
 
     Resets the wallet and unit inventory back to starting values.  Upgrades
     marked ``survives_prestige=True`` are retained and their effects
-    re-applied.  The production multiplier permanently increases by ×1.15
-    per prestige (applied in the game loop as 1.15^prestige_count).
+    re-applied.  The production multiplier permanently increases by ×1.20
+    per prestige level (applied in the game loop as 1.20^prestige_count).
+
+    Supported prestige options (count, currency):
+        1×  U-238  — cost 2^p
+        5×  U-235  — cost max(1, 2^(p-1))
+        10× U-233  — cost max(1, 2^(p-2))
+        25× META   — cost max(1, 2^(p-3))
 
     Args:
+        req: Optional prestige parameters (count and currency).  Defaults to
+            1× U-238 when the body is omitted.
         player: Authenticated player resolved from the ``X-Player-ID`` header.
         session: Async database session injected by ``get_db``.
 
@@ -167,13 +221,16 @@ async def prestige_endpoint(
         and the list of upgrade IDs that survived the reset.
 
     Raises:
-        HTTPException(409): If the player has not met the u238 threshold.
+        HTTPException(409): If the player cannot afford the chosen prestige.
+        HTTPException(422): If count/currency combination is invalid.
     """
     try:
-        result = await run_prestige(session, player)
+        result = await prestige_bulk(session, player, req.count, req.currency)
         await session.commit()
     except PrestigeNotAvailableError as exc:
         raise HTTPException(status_code=409, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
     return PrestigeResponse(
         ok=True,
         new_prestige_count=result.new_prestige_count,

@@ -3,7 +3,7 @@
 A prestige resets the player's wallet and unit inventory while preserving
 metaprogression (prestige_count, tech_magic_level, upgrades marked
 survives_prestige=True).  Each prestige permanently increases the production
-multiplier by ×1.15 (applied in game_loop_service via 1.15^prestige_count).
+multiplier by ×1.20 (applied in game_loop_service via 1.20^prestige_count).
 """
 
 from dataclasses import dataclass, field
@@ -22,6 +22,45 @@ from app.db.repositories.wallet import WalletRepository
 # Base u238 required for the very first prestige (prestige_count == 0).
 # Each subsequent prestige doubles the requirement: base * 2^prestige_count.
 PRESTIGE_U238_REQUIREMENT = Decimal("1")  # kept for backwards-compat imports
+
+# Valid (count, currency) combinations for multi-prestige.
+_VALID_PRESTIGE_OPTIONS: dict[int, tuple[str, int]] = {
+    1: ("u238", 0),  # cost = 2^p
+    5: ("u235", 1),  # cost = max(1, 2^(p-1))
+    10: ("u233", 2),  # cost = max(1, 2^(p-2))
+    25: ("meta_isotopes", 3),  # cost = max(1, 2^(p-3))
+}
+
+
+def multi_prestige_requirement(
+    prestige_count: int,
+    count: int,
+    currency: str,
+) -> tuple[Decimal, str]:
+    """Return the (cost, currency) required to perform a multi-prestige.
+
+    Args:
+        prestige_count: Player's current prestige count (before the reset).
+        count: Number of prestiges to purchase at once. Must be one of: 1, 5, 10, 25.
+        currency: Currency to spend. Must match the expected currency for the given
+            count (u238 for 1×, u235 for 5×, u233 for 10×, meta_isotopes for 25×).
+
+    Returns:
+        Tuple of (Decimal cost, currency name).
+
+    Raises:
+        ValueError: If count is not one of 1/5/10/25, or currency doesn't match count.
+    """
+    if count not in _VALID_PRESTIGE_OPTIONS:
+        raise ValueError(f"count must be one of {sorted(_VALID_PRESTIGE_OPTIONS)}, got {count}")
+    expected_currency, exponent_offset = _VALID_PRESTIGE_OPTIONS[count]
+    if currency != expected_currency:
+        raise ValueError(
+            f"currency for {count}× prestige must be '{expected_currency}', got '{currency}'"
+        )
+    exponent = prestige_count - exponent_offset
+    cost = max(Decimal("1"), Decimal(2) ** exponent)
+    return cost, currency
 
 
 def prestige_requirement(prestige_count: int) -> Decimal:
@@ -61,40 +100,25 @@ class PrestigeResult:
     surviving_upgrade_ids: list[str] = field(default_factory=list)
 
 
-async def prestige(session: AsyncSession, player: PlayerState) -> PrestigeResult:
-    """Perform a soft reset for the given player.
+async def _execute_reset(
+    session: AsyncSession,
+    player: PlayerState,
+    count: int,
+) -> PrestigeResult:
+    """Execute the common soft-reset logic and increment prestige_count by count.
 
-    Flow:
-    1. Validate prestige requirement (u238 threshold).
-    2. Identify upgrades that survive the reset.
-    3. Delete all PlayerUpgrade rows, flush.
-    4. Zero unit amounts and multipliers.
-    5. Reset wallet to starting values.
-    6. Reset offline parameters to defaults.
-    7. Increment prestige_count; clear snapshot signature.
-    8. Re-create surviving upgrades and re-apply their effects.
-
-    The caller must commit the session after this call.
+    Does NOT validate requirements — callers must check cost/currency first.
 
     Args:
         session: Active async database session (within a transaction).
         player: The player to reset.
+        count: Number to add to prestige_count.
 
     Returns:
         PrestigeResult with the new prestige_count and surviving upgrade IDs.
-
-    Raises:
-        PrestigeNotAvailableError: If wallet.u238 < PRESTIGE_U238_REQUIREMENT.
     """
     wallet = await WalletRepository.get_by_player(session, player.id)
     assert wallet is not None, "Wallet missing — database integrity error"
-
-    required = prestige_requirement(player.prestige_count)
-    if wallet.u238 < required:
-        raise PrestigeNotAvailableError(
-            f"Need {required} u238 to prestige (prestige #{player.prestige_count + 1}), "
-            f"have {wallet.u238}"
-        )
 
     # --- Collect surviving upgrades before deletion -------------------------
     all_player_upgrades = await PlayerUpgradeRepository.get_by_player(session, player.id)
@@ -127,7 +151,7 @@ async def prestige(session: AsyncSession, player: PlayerState) -> PrestigeResult
     # --- Reset player state -------------------------------------------------
     player.offline_efficiency = _DEFAULT_OFFLINE_EFFICIENCY
     player.offline_cap_seconds = _DEFAULT_OFFLINE_CAP_SECONDS
-    player.prestige_count += 1
+    player.prestige_count += count
     player.snapshot_signature = ""
     now = datetime.now(UTC)
     player.last_tick_at = now
@@ -167,3 +191,68 @@ async def prestige(session: AsyncSession, player: PlayerState) -> PrestigeResult
         new_prestige_count=player.prestige_count,
         surviving_upgrade_ids=surviving_ids,
     )
+
+
+async def prestige(session: AsyncSession, player: PlayerState) -> PrestigeResult:
+    """Perform a 1× soft reset spending U-238.
+
+    Delegates to ``prestige_bulk`` with count=1, currency="u238".
+
+    Args:
+        session: Active async database session (within a transaction).
+        player: The player to reset.
+
+    Returns:
+        PrestigeResult with the new prestige_count and surviving upgrade IDs.
+
+    Raises:
+        PrestigeNotAvailableError: If wallet.u238 < required threshold.
+    """
+    return await prestige_bulk(session, player, 1, "u238")
+
+
+async def prestige_bulk(
+    session: AsyncSession,
+    player: PlayerState,
+    count: int,
+    currency: str,
+) -> PrestigeResult:
+    """Perform a multi-prestige soft reset.
+
+    Validates that the player holds the required amount of the appropriate
+    higher-tier currency, then executes a full soft reset and increments
+    prestige_count by ``count``.
+
+    Cost formulas (``p`` = current prestige_count):
+        1× U-238:      ``2^p``
+        5× U-235:      ``max(1, 2^(p-1))``
+        10× U-233:     ``max(1, 2^(p-2))``
+        25× META:      ``max(1, 2^(p-3))``
+
+    Args:
+        session: Active async database session (within a transaction).
+        player: The player to reset.
+        count: Number of prestiges to purchase. Must be 1, 5, 10, or 25.
+        currency: Currency to spend. Must match the expected currency for count.
+
+    Returns:
+        PrestigeResult with the new prestige_count and surviving upgrade IDs.
+
+    Raises:
+        PrestigeNotAvailableError: If the player cannot afford the prestige.
+        ValueError: If count/currency combination is invalid.
+    """
+    required, _ = multi_prestige_requirement(player.prestige_count, count, currency)
+
+    wallet = await WalletRepository.get_by_player(session, player.id)
+    assert wallet is not None, "Wallet missing — database integrity error"
+
+    wallet_amount = getattr(wallet, currency)
+    if wallet_amount < required:
+        raise PrestigeNotAvailableError(
+            f"Need {required} {currency} to prestige {count}× "
+            f"(prestige #{player.prestige_count + 1}–{player.prestige_count + count}), "
+            f"have {wallet_amount}"
+        )
+
+    return await _execute_reset(session, player, count)

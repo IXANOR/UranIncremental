@@ -1,7 +1,7 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import { startGame, fetchState, claimOffline, doPrestige, clickReactor } from './lib/api/client.js';
-  import { gameState, error, offlineGains, canPrestige, player, testMode } from './lib/stores/game.js';
+  import { gameState, error, offlineGains, canPrestige, player, testMode, prestigeOptions } from './lib/stores/game.js';
   import WalletHUD from './lib/components/WalletHUD.svelte';
   import UnitList from './lib/components/UnitList.svelte';
   import UpgradeList from './lib/components/UpgradeList.svelte';
@@ -11,7 +11,7 @@
   const POLL_MS = 500;
   let interval;
   let offlinePending = false;
-  let prestigeConfirm = false;
+  let prestigeConfirm = null; // null | { count, currency } — pending confirmation
   let actionBusy = false;
 
   // Click minigame state
@@ -62,12 +62,17 @@
     }
   }
 
+  function requestPrestige(count, currency) {
+    prestigeConfirm = { count, currency };
+  }
+
   async function handlePrestige() {
-    if (!prestigeConfirm) { prestigeConfirm = true; return; }
-    prestigeConfirm = false;
+    if (!prestigeConfirm) return;
+    const { count, currency } = prestigeConfirm;
+    prestigeConfirm = null;
     actionBusy = true;
     try {
-      await doPrestige();
+      await doPrestige(count, currency);
       gameState.set(await fetchState());
       error.set(null);
     } catch (e) {
@@ -126,8 +131,18 @@
     <span class="pi-item">reset: waluta, jednostki i nieutrwalone ulepszenia</span>
     <span class="pi-sep">·</span>
     <span class="pi-item">nagroda: <strong>+20% produkcji na stałe</strong> (kumuluje się)</span>
-    <span class="pi-sep">·</span>
-    <span class="pi-item">zostają: ulepszenia oznaczone <em>↺ trwałe</em></span>
+    {#if $prestigeOptions.length > 0}
+      <span class="pi-sep">·</span>
+      <span class="pi-item pi-costs">
+        {#each $prestigeOptions as opt}
+          <span class="pi-opt" class:pi-affordable={opt.can_afford}>
+            {opt.count}×:
+            {parseFloat(opt.cost).toFixed(0)}
+            {opt.currency === 'meta_isotopes' ? 'META' : opt.currency.toUpperCase()}
+          </span>
+        {/each}
+      </span>
+    {/if}
   </div>
 
   <div class="actions">
@@ -150,17 +165,36 @@
       </button>
     {/if}
 
-    {#if $canPrestige}
+    {#if $prestigeOptions.some((o) => o.can_afford)}
       {#if prestigeConfirm}
-        <span class="confirm-msg">Na pewno? Reset postępu!</span>
-        <button class="btn-action prestige" disabled={actionBusy} on:click={handlePrestige}>
-          ✦ POTWIERDŹ PRESTIGE
-        </button>
-        <button class="btn-cancel" on:click={() => (prestigeConfirm = false)}>Anuluj</button>
+        <div class="prestige-confirm">
+          <span class="confirm-msg">
+            Na pewno? Reset postępu! ({prestigeConfirm.count}× za {prestigeConfirm.currency.replace('_', ' ')})
+          </span>
+          <button class="btn-action prestige" disabled={actionBusy} on:click={handlePrestige}>
+            ✦ POTWIERDŹ
+          </button>
+          <button class="btn-cancel" on:click={() => (prestigeConfirm = null)}>Anuluj</button>
+        </div>
       {:else}
-        <button class="btn-action prestige" disabled={actionBusy} on:click={handlePrestige}>
-          ✦ Prestige
-        </button>
+        <div class="prestige-options">
+          {#each $prestigeOptions as opt}
+            {#if opt.can_afford}
+              <button
+                class="btn-prestige-opt"
+                disabled={actionBusy}
+                on:click={() => requestPrestige(opt.count, opt.currency)}
+                title="{opt.count}× za {parseFloat(opt.cost).toFixed(0)} {opt.currency.replace('_', ' ')}"
+              >
+                ✦ {opt.count}×
+                <span class="opt-cost">
+                  {parseFloat(opt.cost).toFixed(0)}
+                  {opt.currency === 'meta_isotopes' ? 'META' : opt.currency.toUpperCase()}
+                </span>
+              </button>
+            {/if}
+          {/each}
+        </div>
       {/if}
     {/if}
   </div>
@@ -329,6 +363,32 @@
     font-family: inherit;
     font-size: 0.85rem;
   }
+
+  .prestige-options { display: flex; gap: 6px; flex-wrap: wrap; }
+  .btn-prestige-opt {
+    background: #2a1a00;
+    color: #f90;
+    border: 1px solid #860;
+    border-radius: 4px;
+    padding: 5px 12px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: bold;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    transition: background 0.15s;
+  }
+  .btn-prestige-opt:not(:disabled):hover { background: #3a2500; }
+  .btn-prestige-opt:disabled { opacity: 0.4; cursor: not-allowed; }
+  .opt-cost { font-size: 0.7rem; color: #c73; font-weight: normal; }
+  .prestige-confirm { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+  .pi-costs { display: flex; gap: 8px; }
+  .pi-opt { color: #554; }
+  .pi-opt.pi-affordable { color: #fa8; font-weight: bold; }
 
   .columns {
     display: grid;

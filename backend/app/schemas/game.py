@@ -46,6 +46,9 @@ class UnitStateSchema(BaseModel):
     amount_owned: int
     effective_multiplier: Decimal
     next_cost: Decimal
+    bulk_10_cost: Decimal
+    bulk_100_cost: Decimal
+    max_affordable: int
 
 
 class UpgradeStateSchema(BaseModel):
@@ -65,6 +68,15 @@ class UpgradeStateSchema(BaseModel):
     purchased_level: int  # 0 = not purchased
 
 
+class PrestigeOptionSchema(BaseModel):
+    """One prestige option shown in the UI (cost, currency, affordability)."""
+
+    count: int
+    currency: str
+    cost: Decimal
+    can_afford: bool
+
+
 class GameStateResponse(BaseModel):
     """Full game state snapshot returned by GET /api/v1/game/state."""
 
@@ -75,6 +87,7 @@ class GameStateResponse(BaseModel):
     upgrades: list[UpgradeStateSchema]
     test_mode: bool
     prestige_next_requirement: Decimal
+    prestige_options: list[PrestigeOptionSchema]
 
 
 class StartGameResponse(BaseModel):
@@ -83,6 +96,13 @@ class StartGameResponse(BaseModel):
     player_id: uuid.UUID
     state_version: int
     started_at: datetime
+
+
+class PrestigeRequest(BaseModel):
+    """Optional body for POST /api/v1/game/prestige."""
+
+    count: int = 1
+    currency: str = "u238"
 
 
 class PrestigeResponse(BaseModel):

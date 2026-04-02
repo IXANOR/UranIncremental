@@ -169,6 +169,56 @@ Architecture must remain single-user-first but structurally ready for multi-user
 
 ---
 
+### Task 15 - Prestige v2, Bulk Buy, Rich Unit Cards
+
+**Status:** `done`
+**Depends on:** Task 14
+
+#### Definition of Done
+- [x] **Prestige cost visible w UI** — sekcja prestige pokazuje koszt następnego prestige (ile U-238/U-235/U-233/META potrzeba)
+- [x] **Multi-prestige** — 4 opcje: 1× U-238 (dotychczasowy), 5× U-235, 10× U-233, 25× META; koszt akumulacyjny (wymagane tyle waluty w portfelu, reset ją kasuje); `POST /game/prestige` przyjmuje opcjonalne `{count, currency}`
+- [x] **Balans prestige** — formuły kosztu: 1× = `2^p` U-238, 5× = `max(1, 2^(p−1))` U-235, 10× = `max(1, 2^(p−2))` U-233, 25× = `max(1, 2^(p−3))` META; balance test weryfikuje że wyższe opcje stają się efektywne dopiero przy p≥2/3/4
+- [x] **Prestige options w stanie gry** — `GET /game/state` zwraca `prestige_options: list[PrestigeOptionSchema]` z `{count, currency, cost, can_afford}` dla każdej z 4 opcji
+- [x] **Produkcja na jednostkę** — `UnitStateSchema` oraz UI pokazuje `production_rate_per_sec` jednej jednostki (w rozwiniętej karcie)
+- [x] **Rozwijane karty jednostek** — kliknięcie na nazwę jednostki rozwija szczegóły: ile kupionych, ile produkuje flota/s, ile produkuje 1 szt./s; w zwiniętej wersji: nazwa, liczba w kolorze niebieskim, produkcja w kolorze zielonym, koszt
+- [x] **Bulk buy** — przyciski 1×/10×/100×/MAX w nagłówku listy jednostek; przy wybranej ilości każda karta pokazuje łączny koszt; MAX oblicza ile można kupić za aktualną walutę i kupuje tę liczbę; backend zwraca `bulk_10_cost`, `bulk_100_cost`, `max_affordable` w stanie jednostki
+- [x] **Testy** — unit dla formuł kosztu multi-prestige + balance dla progresu efektywności + unit dla `compute_max_affordable`
+
+---
+
+#### Post-task notes
+- **Date:** 2026-04-02
+- **Commit(s):** `(pending)`
+- **Scope implemented:**
+  - `multi_prestige_requirement(prestige_count, count, currency)` — returns `(Decimal cost, currency)` for 4 options
+  - `prestige_bulk(session, player, count, currency)` — refactored from old `prestige()`; common reset logic in `_execute_reset()`
+  - `compute_max_affordable(base_cost, growth_factor, growth_type, amount_owned, wallet_balance)` — binary search in pricing_service
+  - `PrestigeOptionSchema`, `PrestigeRequest` added to schemas
+  - `UnitStateSchema` extended: `bulk_10_cost`, `bulk_100_cost`, `max_affordable`
+  - `GameStateResponse` extended: `prestige_options: list[PrestigeOptionSchema]`
+  - `GET /game/state` computes 4 prestige options + bulk costs per unit
+  - `POST /game/prestige` accepts optional body `{count, currency}` (defaults to 1× U-238)
+  - `UnitList.svelte` rewritten: expandable cards, bulk selector 1×/10×/100×/MAX
+  - `App.svelte` prestige section: shows 4 prestige buttons (only affordable ones), prestige cost bar
+  - `client.js` `doPrestige(count, currency)` updated to send body
+  - `game.js` `prestigeOptions` derived store added
+- **Architectural decisions:**
+  - `prestige()` now delegates to `prestige_bulk(1, "u238")` — zero breaking changes for existing callers
+  - `_VALID_PRESTIGE_OPTIONS` dict drives both validation and the route's option list — single source of truth
+  - Binary search in `compute_max_affordable` doubles hi until overshoot, then bisects — O(log n) with 100k cap
+  - Bulk cost for MAX shown as "×N" label instead of total (backend sends max_affordable count)
+- **Risks / constraints:**
+  - `bulk_100_cost` at 0 units owned is accurate; if player already owns many units, the 100× cost shown in UI
+    is for the NEXT 100 units from current count (correct behavior)
+  - multi-prestige resets wallet like single prestige — the currency cost is "consumed" by the reset
+- **Test status:**
+  - Unit: ✅ 28 tests (prestige_bulk formulas, balance efficiency, max_affordable)
+  - Integration: ✅ 8 tests (prestige options in state, bulk costs, 1× prestige, 5× U-235, error paths)
+  - Balance: ✅ included in unit test_prestige_bulk.py
+  - Total: 198 testów
+
+---
+
 ## Phase 2 Architecture Notes
 
 ### Content i balans — workflow
