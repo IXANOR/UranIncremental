@@ -1,11 +1,12 @@
 <script>
-  import { wallet } from '../stores/game.js';
+  import { wallet, gameState } from '../stores/game.js';
   import { listExperiments, runExperiment } from '../api/client.js';
 
   let experiments = [];
   let results = [];   // last N run results (most recent first)
   let busy = {};
   let loadError = null;
+  let loaded = false;
 
   async function load() {
     try {
@@ -15,6 +16,9 @@
       loadError = e.message;
     }
   }
+
+  // load() once the game state (and player_id) is ready — avoids 400 on early mount
+  $: if ($gameState && !loaded) { loaded = true; load(); }
 
   async function handleRun(experiment_id) {
     busy = { ...busy, [experiment_id]: true };
@@ -70,7 +74,6 @@
     return o.effect_type;
   }
 
-  load();
 </script>
 
 <section class="lab">
@@ -116,7 +119,13 @@
           </span>
           <button
             class="btn-run"
-            disabled={busy[exp.experiment_id] || exp.cooldown_remaining_seconds > 0 || !canAfford(exp)}
+            disabled={
+              busy[exp.experiment_id] ||
+              exp.cooldown_remaining_seconds > 0 ||
+              !$wallet ||
+              parseFloat($wallet.energy_drink ?? 0) < parseFloat(exp.ed_cost) ||
+              parseFloat($wallet.u238 ?? 0) < parseFloat(exp.u238_cost)
+            }
             on:click={() => handleRun(exp.experiment_id)}
           >
             {busy[exp.experiment_id] ? '...' : 'Przeprowadź'}
