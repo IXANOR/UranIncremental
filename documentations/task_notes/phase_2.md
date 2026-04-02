@@ -82,16 +82,45 @@ Architecture must remain single-user-first but structurally ready for multi-user
 
 ### Task 13 - Minigame: Klik Reaktora
 
-**Status:** `not started`
+**Status:** `done`
 **Depends on:** Task 11 (frontend)
 
 #### Definition of Done
-- [ ] Przycisk "Klik" w UI (widoczny zawsze) — każde kliknięcie generuje bonus ED równy `base_click_reward * prestige_multiplier`
-- [ ] Endpoint `POST /api/v1/game/click` przyjmuje kliknięcie, waliduje rate-limit (max 10/s per player), zwraca `{gained: Decimal}`
-- [ ] Rate-limit przechowywany w pamięci (Redis w Phase 3; na razie `dict` per process z TTL)
-- [ ] `click_count` i `total_click_gains` śledzone w `PlayerState` (nowe kolumny + migracja)
-- [ ] Frontend animuje przycisk przy kliknięciu (CSS transition, bez biblioteki animacji)
-- [ ] Testy: unit dla logiki reward + integration dla rate-limit + balance (klik nie może zastąpić pasywnej produkcji — musi być < 1% godzinnej produkcji z 1 barrel)
+- [x] Przycisk "Klik" w UI (widoczny zawsze) — każde kliknięcie generuje bonus ED równy `base_click_reward * prestige_multiplier`
+- [x] Endpoint `POST /api/v1/game/click` przyjmuje kliknięcie, waliduje rate-limit (max 10/s per player), zwraca `{gained: Decimal}`
+- [x] Rate-limit przechowywany w pamięci (Redis w Phase 3; na razie `dict` per process z TTL)
+- [x] `click_count` i `total_click_gains` śledzone w `PlayerState` (nowe kolumny + migracja)
+- [x] Frontend animuje przycisk przy kliknięciu (CSS transition, bez biblioteki animacji)
+- [x] Testy: unit dla logiki reward + integration dla rate-limit + balance (klik nie może zastąpić pasywnej produkcji — musi być < 1% godzinnej produkcji z 1 barrel)
+
+---
+
+#### Post-task notes
+- **Date:** 2026-04-02
+- **Commit(s):** `2d81d36`
+- **Scope implemented:**
+  - `click_service.py`: `process_click()` + `ClickRateLimitError` + in-process rate limiter (`_click_timestamps: dict[UUID, list[float]]`, okno 1s, max 10 kliknięć)
+  - `BASE_CLICK_REWARD = 1.0 ED × 1.20^prestige_count`
+  - `PlayerState`: nowe kolumny `click_count: int` i `total_click_gains: Decimal(28,10)`
+  - Migracja Alembic `d4e5f6a7b8c9` z `server_default="0"`
+  - `POST /api/v1/game/click` w `game.py` router, zwraca `ClickResponse(gained: Decimal)`, 429 przy rate limit
+  - `PlayerStateSchema` rozszerzone o `click_count` + `total_click_gains`
+  - `App.svelte` przywrócone (było puste) + przycisk ⚡ Klik! z CSS scale transform + fade dla `+X ED`
+  - Footer gry pokazuje licznik kliknięć i poprawiony mnożnik 1.20×
+- **Architectural decisions:**
+  - Rate limiter in-process (dict) — wystarczający dla single-user MVP; Redis/shared store gdy multi-user (Phase 3)
+  - `process_click` invaliduje `snapshot_signature = ""` — spójność z pozostałymi mutacjami stanu
+  - `ClickRateLimitError` → HTTP 429; błędy rate-limit ignorowane cicho po stronie frontendu (brak spamu bannerów)
+- **Risks / constraints:**
+  - Rate limiter resetuje się przy restarcie procesu — akceptowalne dla Phase 2
+  - `total_click_gains` nie jest retroaktywnie agregowane — zaczyna od 0 dla istniejących graczy po migracji
+- **Notes for next tasks:**
+  - Task 14 (Eksperyment Jądrowy) zależy od Task 13 wg planu, ale nie technicznie — można implementować niezależnie
+- **Test status:**
+  - Unit: ✅ 7 testów (reward, prestige scaling, wallet, click_count, total_gains, rate limit, window reset)
+  - Integration: ✅ 5 testów (200 gained, wallet balance, 429 rate limit, 400 brak nagłówka, 404 nieznany gracz)
+  - Balance: ✅ 1 test (BASE_CLICK_REWARD < 1% hourly barrel = 10.8 ED)
+  - Total: 142 testów
 
 ---
 
