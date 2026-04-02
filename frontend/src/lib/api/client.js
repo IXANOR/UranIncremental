@@ -84,3 +84,16 @@ export async function clickReactor() {
   });
   return handle(res);
 }
+
+export async function listExperiments() {
+  const res = await fetch(`${BASE}/game/experiments`, { headers: headers() });
+  return handle(res);
+}
+
+export async function runExperiment(experiment_id) {
+  const res = await fetch(`${BASE}/game/experiment/${experiment_id}`, {
+    method: 'POST',
+    headers: headers(),
+  });
+  return handle(res);
+}

@@ -164,6 +164,15 @@ async def tick(
         prestige_mult = Decimal("1.20") ** player.prestige_count
         delta_dec = Decimal(str(effective_delta))
 
+        # Apply temporary production multiplier from experiments if still active
+        temp_mult = Decimal("1")
+        if (
+            player.temp_prod_multiplier > Decimal("1")
+            and player.temp_prod_multiplier_expires_at is not None
+            and ensure_utc(player.temp_prod_multiplier_expires_at) > ensure_utc(now)
+        ):
+            temp_mult = player.temp_prod_multiplier
+
         unit_defs = {ud.id: ud for ud in await UnitDefinitionRepository.get_all(session)}
 
         for unit in units:
@@ -178,6 +187,7 @@ async def tick(
                 * delta_dec
                 * unit.effective_multiplier
                 * prestige_mult
+                * temp_mult
             )
             gains[unit_def.production_resource] += production
 

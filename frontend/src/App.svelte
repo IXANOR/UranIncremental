@@ -6,6 +6,7 @@
   import UnitList from './lib/components/UnitList.svelte';
   import UpgradeList from './lib/components/UpgradeList.svelte';
   import CheatPanel from './lib/components/CheatPanel.svelte';
+  import Laboratorium from './lib/components/Laboratorium.svelte';
 
   const POLL_MS = 500;
   let interval;
@@ -163,6 +164,8 @@
       {/if}
     {/if}
   </div>
+
+  <Laboratorium />
 
   <div class="columns">
     <div class="col">

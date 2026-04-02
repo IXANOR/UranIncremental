@@ -10,6 +10,7 @@ from decimal import Decimal
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.db.models.experiment import ExperimentDefinition
 from app.db.models.unit import UnitDefinition
 from app.db.models.upgrade import UpgradeDefinition
 from app.db.session import AsyncSessionLocal
@@ -592,6 +593,111 @@ _UPGRADE_DATA: list[dict] = [  # type: ignore[type-arg]
 ]
 
 
+_EXPERIMENT_DATA: list[dict] = [  # type: ignore[type-arg]
+    dict(
+        id="alpha_test",
+        name="Test Alfa",
+        description=(
+            "Tani eksperyment z małym ryzykiem. Szybka reakcja izotopowa w kolbie laboratoryjnej."
+        ),
+        ed_cost=Decimal("20"),
+        u238_cost=Decimal("0"),
+        cooldown_seconds=3600,
+        outcomes=[
+            {
+                "probability": 0.60,
+                "label": "Brak reakcji — kolba jest niezrażona.",
+                "effect_type": "nothing",
+                "effect_value": 0,
+                "duration_seconds": 0,
+            },
+            {
+                "probability": 0.30,
+                "label": "Mała iskra! Energetyk wzbogacony jonem uranu.",
+                "effect_type": "prod_bonus",
+                "effect_value": 10,
+                "duration_seconds": 0,
+            },
+            {
+                "probability": 0.10,
+                "label": "Impuls! Reaktor na chwilę przyspiesza.",
+                "effect_type": "temp_multiplier",
+                "effect_value": 1.5,
+                "duration_seconds": 60,
+            },
+        ],
+    ),
+    dict(
+        id="beta_reaction",
+        name="Reakcja Beta",
+        description=(
+            "Średni eksperyment wymagający odrobiny U-238."
+            " Łańcuch rozpadów beta może wzmocnić produkcję."
+        ),
+        ed_cost=Decimal("100"),
+        u238_cost=Decimal("1"),
+        cooldown_seconds=3600,
+        outcomes=[
+            {
+                "probability": 0.50,
+                "label": "Stabilizacja bez efektu. Przynajmniej nic nie wybuchło.",
+                "effect_type": "nothing",
+                "effect_value": 0,
+                "duration_seconds": 0,
+            },
+            {
+                "probability": 0.35,
+                "label": "Wzmocnienie reakcji! Produkcja rośnie na 2 minuty.",
+                "effect_type": "temp_multiplier",
+                "effect_value": 1.5,
+                "duration_seconds": 120,
+            },
+            {
+                "probability": 0.15,
+                "label": "Krytyczne wzmocnienie! Reaktor szaleje przez 3 minuty!",
+                "effect_type": "temp_multiplier",
+                "effect_value": 2.0,
+                "duration_seconds": 180,
+            },
+        ],
+    ),
+    dict(
+        id="gamma_fusion",
+        name="Fuzja Gamma",
+        description=(
+            "Drogi eksperyment z dużą dawką U-238."
+            " Próba kontrolowanej fuzji — wyniki nieprzewidywalne."
+        ),
+        ed_cost=Decimal("300"),
+        u238_cost=Decimal("5"),
+        cooldown_seconds=3600,
+        outcomes=[
+            {
+                "probability": 0.40,
+                "label": "Reakcja niestabilna. Izotopy rozproszone. Brak efektu.",
+                "effect_type": "nothing",
+                "effect_value": 0,
+                "duration_seconds": 0,
+            },
+            {
+                "probability": 0.40,
+                "label": "Fuzja częściowa! Produkcja podwojona na 5 minut!",
+                "effect_type": "temp_multiplier",
+                "effect_value": 2.0,
+                "duration_seconds": 300,
+            },
+            {
+                "probability": 0.20,
+                "label": "FUZJA KRYTYCZNA! Potrójna produkcja przez 5 minut!",
+                "effect_type": "temp_multiplier",
+                "effect_value": 3.0,
+                "duration_seconds": 300,
+            },
+        ],
+    ),
+]
+
+
 async def seed(session: AsyncSession) -> None:
     """Upsert all static game config rows (insert or update in-place).
 
@@ -622,6 +728,17 @@ async def seed(session: AsyncSession) -> None:
                 setattr(obj, k, v)
         else:
             session.add(UpgradeDefinition(**data))
+
+    existing_experiments = {
+        e.id: e for e in (await session.execute(select(ExperimentDefinition))).scalars().all()
+    }
+    for data in _EXPERIMENT_DATA:
+        if data["id"] in existing_experiments:
+            obj = existing_experiments[data["id"]]
+            for k, v in data.items():
+                setattr(obj, k, v)
+        else:
+            session.add(ExperimentDefinition(**data))
 
     await session.flush()
 

@@ -98,3 +98,37 @@ class ClickResponse(BaseModel):
     """Response for POST /api/v1/game/click."""
 
     gained: Decimal
+
+
+class ExperimentOutcomeSchema(BaseModel):
+    """Single possible outcome row within an experiment definition."""
+
+    probability: float
+    label: str
+    effect_type: str
+    effect_value: float
+    duration_seconds: int
+
+
+class ExperimentSchema(BaseModel):
+    """Experiment definition enriched with the player's current cooldown status."""
+
+    experiment_id: str
+    name: str
+    description: str
+    ed_cost: Decimal
+    u238_cost: Decimal
+    cooldown_seconds: int
+    cooldown_remaining_seconds: int  # 0 = ready to run
+    outcomes: list[ExperimentOutcomeSchema]
+
+
+class ExperimentRunResponse(BaseModel):
+    """Response for POST /api/v1/game/experiment/{experiment_id}."""
+
+    experiment_id: str
+    outcome_label: str
+    effect_type: str
+    effect_value: Decimal
+    duration_seconds: int
+    cooldown_until: datetime
