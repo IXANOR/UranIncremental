@@ -126,17 +126,46 @@ Architecture must remain single-user-first but structurally ready for multi-user
 
 ### Task 14 - Sezonowy Sink: Eksperyment Jądrowy
 
-**Status:** `not started`
+**Status:** `done`
 **Depends on:** Task 13
 
 #### Definition of Done
-- [ ] Mechanizm "eksperymentu" — gracz może wydać pulę ED i U-238 na losowe wydarzenie z tabelą wyników (sukces/porażka/krytyczny sukces)
-- [ ] `ExperimentDefinition` (id, name, description, ed_cost, u238_cost, outcomes: JSON)
-- [ ] Endpoint `POST /api/v1/game/experiment/{experiment_id}` — odejmuje koszt, losuje wynik, aplikuje efekt (bonus do produkcji, tymczasowy mnożnik, lub nic)
-- [ ] Seed: 3 eksperymenty startowe (tanie, średnie, drogie)
-- [ ] Cooldown 1h per eksperyment (zapisany w `PlayerState.last_experiment_at`)
-- [ ] Frontend: sekcja "Laboratoryum" w zakładce lub na dole strony; lista eksperymentów z kosztami i historią ostatnich wyników
-- [ ] Testy: unit dla losowania wyników (seed RNG) + integration dla transakcji kosztów + balance (max efekt nie może przebić 30-min produkcji)
+- [x] Mechanizm "eksperymentu" — gracz może wydać pulę ED i U-238 na losowe wydarzenie z tabelą wyników (sukces/porażka/krytyczny sukces)
+- [x] `ExperimentDefinition` (id, name, description, ed_cost, u238_cost, outcomes: JSON)
+- [x] Endpoint `POST /api/v1/game/experiment/{experiment_id}` — odejmuje koszt, losuje wynik, aplikuje efekt (bonus do produkcji, tymczasowy mnożnik, lub nic)
+- [x] Seed: 3 eksperymenty startowe (tanie, średnie, drogie)
+- [x] Cooldown 1h per eksperyment (zapisany w `PlayerState.experiment_cooldowns` jako JSON dict)
+- [x] Frontend: sekcja "Laboratorium" na dole strony; lista eksperymentów z kosztami i historią ostatnich wyników
+- [x] Testy: unit dla losowania wyników (seed RNG) + integration dla transakcji kosztów + balance (max efekt nie może przebić 30-min produkcji)
+
+---
+
+#### Post-task notes
+- **Date:** 2026-04-02
+- **Commit(s):** `aaa022e`
+- **Scope implemented:**
+  - `ExperimentDefinition` model: `id`, `name`, `description`, `ed_cost`, `u238_cost`, `cooldown_seconds`, `outcomes: JSON`
+  - 3 eksperymenty w seed: `alpha_test` (20 ED), `beta_reaction` (100 ED + 1 U238), `gamma_fusion` (300 ED + 5 U238)
+  - Typy wyników: `nothing`, `prod_bonus` (natychmiastowy ED), `temp_multiplier` (mnożnik × duration_seconds)
+  - `PlayerState` rozszerzone: `experiment_cooldowns: JSON dict[str, str]`, `temp_prod_multiplier: Decimal`, `temp_prod_multiplier_expires_at: DateTime?`
+  - `game_loop_service`: `temp_mult` aplikowany do produkcji gdy aktywny i nie wygasł
+  - `GET /api/v1/game/experiments`: lista z `cooldown_remaining_seconds` per gracz
+  - `POST /api/v1/game/experiment/{id}`: 404 (brak)/409 (cooldown)/402 (brak kasy)/200 (sukces)
+  - Migracja `e5f6a7b8c9d0`: tabela `experiment_definition` + 3 kolumny w `player_state`
+  - `Laboratorium.svelte`: karty eksperymentów, licznik cooldownu, historia 5 ostatnich wyników
+- **Architectural decisions:**
+  - `experiment_cooldowns` jako JSON dict zamiast kolumny per-eksperyment — skalowalny bez kolejnych migracji dla nowych eksperymentów
+  - `_roll_outcome(rng)` — wstrzykiwalne RNG dla deterministycznych testów; prod używa `random.Random()` bez seeda
+  - `temp_prod_multiplier` w PlayerState + check w game_loop_service — spójne z resztą mnożników produkcji; brak osobnej tabeli efektów
+  - Stacking: gdy mnożnik już aktywny i nowy jest słabszy, wydłuża expiry zamiast nadpisywać; silniejszy nadpisuje
+- **Risks / constraints:**
+  - `temp_prod_multiplier` nie jest uwzględniony w podpisie snapshot (celowo — signing pokrywa wallet+units, nie buffs)
+  - Cooldown timer w Laboratorium.svelte nie tyka automatycznie — wymaga kliknięcia "Przeprowadź" żeby odświeżyć; można poprawić w Phase 3 (polling)
+- **Test status:**
+  - Unit: ✅ 11 testów (roll_outcome deterministyczne, koszty ED/U238, efekty prod_bonus/temp_mult, cooldown, error paths)
+  - Integration: ✅ 7 testów (list 3 exp, cooldown_remaining=0, run 200, 404, 409, 402, 400)
+  - Balance: ✅ 2 testy (wszystkie wyniki < 30-min barrel, sumy probabilistyczne = 1.0)
+  - Total: 162 testów
 
 ---
 
