@@ -18,6 +18,8 @@ class PlayerStateSchema(BaseModel):
     offline_cap_seconds: int
     last_tick_at: datetime
     last_online_at: datetime
+    click_count: int
+    total_click_gains: Decimal
 
 
 class WalletSchema(BaseModel):
@@ -90,3 +92,9 @@ class PrestigeResponse(BaseModel):
     new_prestige_count: int
     production_multiplier: float
     surviving_upgrades: list[str]
+
+
+class ClickResponse(BaseModel):
+    """Response for POST /api/v1/game/click."""
+
+    gained: Decimal

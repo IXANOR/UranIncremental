@@ -15,6 +15,7 @@ from app.db.repositories.unit_definition import UnitDefinitionRepository
 from app.db.repositories.upgrade_definition import UpgradeDefinitionRepository
 from app.db.session import get_db
 from app.schemas.game import (
+    ClickResponse,
     GameStateResponse,
     PlayerStateSchema,
     PrestigeResponse,
@@ -23,6 +24,7 @@ from app.schemas.game import (
     UpgradeStateSchema,
     WalletSchema,
 )
+from app.services.click_service import ClickRateLimitError, process_click
 from app.services.game_loop_service import SnapshotSignatureError, tick
 from app.services.prestige_service import PrestigeNotAvailableError, prestige_requirement
 from app.services.prestige_service import prestige as run_prestige
@@ -178,3 +180,31 @@ async def prestige_endpoint(
         production_multiplier=float(Decimal("1.20") ** result.new_prestige_count),
         surviving_upgrades=result.surviving_upgrade_ids,
     )
+
+
+@router.post("/click", response_model=ClickResponse)
+async def click_reactor(
+    player: PlayerState = Depends(get_current_player),
+    session: AsyncSession = Depends(get_db),
+) -> ClickResponse:
+    """Process a single reactor click and award ED to the player.
+
+    Awards ``BASE_CLICK_REWARD * 1.20 ** prestige_count`` energy_drink per click.
+    Enforces a server-side rate limit of 10 clicks per second.
+
+    Args:
+        player: Authenticated player resolved from the ``X-Player-ID`` header.
+        session: Async database session injected by ``get_db``.
+
+    Returns:
+        ClickResponse with the ``gained`` amount of energy_drink.
+
+    Raises:
+        HTTPException(429): If the player exceeds the click rate limit.
+    """
+    try:
+        gained = await process_click(session, player)
+        await session.commit()
+    except ClickRateLimitError as exc:
+        raise HTTPException(status_code=429, detail=str(exc))
+    return ClickResponse(gained=gained)

@@ -76,3 +76,11 @@ export async function doPrestige() {
   });
   return handle(res);
 }
+
+export async function clickReactor() {
+  const res = await fetch(`${BASE}/game/click`, {
+    method: 'POST',
+    headers: headers(),
+  });
+  return handle(res);
+}

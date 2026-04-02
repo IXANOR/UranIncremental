@@ -1,12 +1,14 @@
 import uuid
 from datetime import UTC, datetime
+from decimal import Decimal
 
-from sqlalchemy import DateTime, String
+from sqlalchemy import DateTime, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
 
 _TZ = DateTime(timezone=True)
+_DECIMAL = Numeric(precision=28, scale=10)
 _now = lambda: datetime.now(UTC)  # noqa: E731
 
 
@@ -14,7 +16,8 @@ class PlayerState(Base):
     """Persistent state for a single player.
 
     Tracks progression metadata, prestige level, offline parameters,
-    and the HMAC snapshot signature used to detect tampering.
+    click minigame stats, and the HMAC snapshot signature used to detect
+    tampering.
     """
 
     __tablename__ = "player_state"
@@ -30,3 +33,5 @@ class PlayerState(Base):
     offline_efficiency: Mapped[float] = mapped_column(default=0.20)
     offline_cap_seconds: Mapped[int] = mapped_column(default=14400)  # 4h
     snapshot_signature: Mapped[str] = mapped_column(String(256), default="")
+    click_count: Mapped[int] = mapped_column(default=0)
+    total_click_gains: Mapped[Decimal] = mapped_column(_DECIMAL, default=Decimal("0"))
